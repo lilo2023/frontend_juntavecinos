@@ -62,16 +62,23 @@ export default function FormularioSolicitud(props) {
         comuna: infoJunta.comuna || 'Ñuñoa',
         calidadResidente: 'Propietario',
         destino: '',
-        montoPago: infoJunta.valorCertificado || '0'
+        montoPago: infoJunta.valorCertificado || '0',
+        tipoDocDomicilio: 'Boleta de Servicio' // Inicializado con la primera opción del select
     });
 
-
-
     const [rutError, setRutError] = useState(false);
+    const [isSubiendo, setIsSubiendo] = useState(false); // Estado para feedback de carga de imágenes
+
+    // 📁 NUEVOS ESTADOS COMPLEMENTARIOS PARA ARCHIVOS REALES (BINARIOS CRUDOS)
+    const [archivosRaw, setArchivosRaw] = useState({
+        cedula: null,
+        domicilio: null,
+        comprobantePago: null
+    });
+
     const [urlsTemporales, setUrlsTemporales] = useState({
         cedula: '',
-        afp: '',
-        tarjetaVecino: '',
+        domicilio: '',
         comprobantePago: ''
     });
 
@@ -84,17 +91,54 @@ export default function FormularioSolicitud(props) {
     }, [infoJunta.comuna, infoJunta.valorCertificado]);
 
     const cargarDatosDemo = () => {
-        setFormData({
-            nombre: 'Danilo Marcelo Godoy Díaz',
-            rut: '10.703.900-7',
-            email: 'danilo.godoy@alumnos.unab.cl',
-            direccion: 'Avenida Grecia 3348, Torre A, Departamento 1713',
-            comuna: infoJunta.comuna || 'Ñuñoa',
-            calidadResidente: 'Familiar del propietario',
-            destino: 'Universidad Andrés Bello',
-            montoPago: infoJunta.valorCertificado || '0'
+        setFormData({
+            nombre: 'Danilo Marcelo Godoy Díaz',
+            rut: '10.703.900-7',
+            email: 'danilo.godoy@alumnos.unab.cl',
+            direccion: 'Avenida Grecia 3348, Torre A, Departamento 1713',
+            comuna: infoJunta.comuna || 'Ñuñoa',
+            calidadResidente: 'Familiar del propietario',
+            destino: 'Universidad Andrés Bello',
+            montoPago: infoJunta.valorCertificado || '0',
+            tipoDocDomicilio: 'Boleta de Servicio'
+        });
+        setRutError(false);
+
+        // Simulamos que cargamos los archivos inyectando un objeto Blob simulado
+        // para pasar las validaciones del submit sin romper el flujo asíncrono
+        const blobSimulado = new Blob(["demo"], { type: "image/png" });
+        setArchivosRaw({
+            cedula: blobSimulado,
+            domicilio: blobSimulado,
+            comprobantePago: blobSimulado
         });
-        setRutError(false);
+    };
+
+    const subirACloudinary = async (file) => {
+        if (!file) return "";
+
+        const formDataCloudinary = new FormData();
+        formDataCloudinary.append("file", file);
+        formDataCloudinary.append("upload_preset", "preset_vecinos");
+
+        try {
+            const res = await fetch("https://api.cloudinary.com/v1_1/dpbvl0jgf/image/upload", {
+                method: "POST",
+                body: formDataCloudinary,
+            });
+
+            const data = await res.json();
+
+            if (data.secure_url) {
+                return data.secure_url; 
+            } else {
+                console.error("Error en la respuesta de Cloudinary:", data);
+                return "";
+            }
+        } catch (error) {
+            console.error("Error al conectar con Cloudinary:", error);
+            return "";
+        }
     };
 
     const handleInputChange = (e) => {
@@ -114,49 +158,153 @@ export default function FormularioSolicitud(props) {
         }
     };
 
+    // 🔄 MODIFICADO: Ahora captura tanto el objeto URL temporal como el archivo crudo original
     const handleFileChange = (e) => {
         const file = e.target.files[0];
+        const inputName = e.target.name; // 'cedula', 'domicilio' o 'comprobantePago'
+
         if (file) {
-            setUrlsTemporales(prev => ({ ...prev, [e.target.name]: URL.createObjectURL(file) }));
+            // Guardamos el binario para Cloudinary
+            setArchivosRaw(prev => ({ ...prev, [inputName]: file }));
+            // Guardamos el objeto virtual por si necesitas renderizar previsualizaciones locales
+            setUrlsTemporales(prev => ({ ...prev, [inputName]: URL.createObjectURL(file) }));
         }
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (rutError || !formData.rut) {
-            alert('Por favor, ingrese un RUT válido antes de enviar.');
-            return;
-        }
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (rutError || !formData.rut) {
+            alert('Por favor, ingrese un RUT válido antes de enviar.');
+            return;
+        }
 
-        const nuevaSolicitud = {
-            id: 'FOLIO-' + Math.floor(10000 + Math.random() * 90000),
-            nombre: formData.nombre,
-            rut: formData.rut,
-            email: formData.email,
-            direccion: formData.direccion,
-            calidadResidente: formData.calidadResidente,
-            destino: formData.destino,
-            montoPago: formData.montoPago || infoJunta.valorCertificado || '0',
-            estado: 'Pendiente',
-            ingreso: 'Hace un momento',
-            // Cambia la sección de "urls" dentro de handleSubmit para que quede así:
-            urls: {
-                cedula: urlsTemporales.cedula || 'https://via.placeholder.com/500x350?text=FOTO+CEDULA',
-                domicilio: urlsTemporales.domicilio || 'https://via.placeholder.com/500x600?text=DOCUMENTO+DOMICILIO', // ✨ Corregido
-                tarjeta: urlsTemporales.tarjetaVecino || 'https://via.placeholder.com/500x300?text=TARJETA+VIRTUAL',
-                pago: urlsTemporales.comprobantePago || 'https://via.placeholder.com/500x400?text=COMPROBANTE+PAGO'
-            }
-        };
+        // Validación preventiva: verificar que se hayan adjuntado los documentos requeridos
+        if (!archivosRaw.cedula || !archivosRaw.domicilio || !archivosRaw.comprobantePago) {
+            alert('Por favor, adjunte los tres documentos requeridos (Cédula, Acreditación y Comprobante).');
+            return;
+        }
 
-        props.onEnviar(nuevaSolicitud);
-        alert('¡Solicitud enviada exitosamente al panel de revisión institucional!');
+        // ==========================================
+        // PROCESAMIENTO DE IMÁGENES ASÍNCRONAS (Cloudinary)
+        // ==========================================
+        setIsSubiendo(true); // Bloqueamos el botón y notificamos al vecino
 
-        setFormData({
-            nombre: '', rut: '', email: '', direccion: '',
-            comuna: infoJunta.comuna || 'Ñuñoa', calidadResidente: 'Propietario',
-            destino: '', montoPago: infoJunta.valorCertificado || '0'
-        });
-    };
+        let cloudCedulaUrl = "";
+        let cloudDomicilioUrl = "";
+        let cloudPagoUrl = "";
+
+        try {
+            // Disparamos la subida de los archivos reales guardados en archivosRaw
+            cloudCedulaUrl = await subirACloudinary(archivosRaw.cedula);
+            cloudDomicilioUrl = await subirACloudinary(archivosRaw.domicilio);
+            cloudPagoUrl = await subirACloudinary(archivosRaw.comprobantePago);
+
+            if (!cloudCedulaUrl || !cloudDomicilioUrl || !cloudPagoUrl) {
+                throw new Error("Una o más imágenes no pudieron procesarse en la nube.");
+            }
+        } catch (errorCloud) {
+            console.error(errorCloud);
+            alert("❌ Error al procesar y subir tus documentos de respaldo a Cloudinary. Inténtalo de nuevo.");
+            setIsSubiendo(false);
+            return;
+        }
+
+        // ==========================================
+        // LÓGICA DE PROCESAMIENTO DE DIRECCIÓN (Mapeo a Objeto)
+        // ==========================================
+        const partesDireccion = formData.direccion.split(',');
+
+        const calleLimpia = partesDireccion[0] ? partesDireccion[0].replace(/(\d+)/g, '').trim() : 'No especificada';
+        const matchNumero = partesDireccion[0] ? partesDireccion[0].match(/\d+/) : null;
+        const numeroLimpio = matchNumero ? matchNumero[0] : 'S/N';
+
+        const torreLimpia = partesDireccion[1] ? partesDireccion[1].replace(/torre/i, '').trim() : '';
+        const deptoLimpio = partesDireccion[2] ? partesDireccion[2].replace(/departamento|depto/i, '').trim() : '';
+
+        // ==========================================
+        // ESTRUCTURA DEL OBJETO FINAL CON LINKS DE INTERNET
+        // ==========================================
+        const datosParaBackend = {
+            nombre: formData.nombre,
+            rut: formData.rut,
+            correo: formData.email, // Mapeado de 'email' a 'correo'
+            destino: formData.destino,
+            direccion: {
+                calle: calleLimpia,
+                numero: numeroLimpio,
+                torre: torreLimpia,
+                departamento: deptoLimpio,
+                comuna: formData.comuna || 'Ñuñoa'
+            },
+            tipoResidente: formData.calidadResidente === 'Familiar del propietario' ? 'Familiar' : formData.calidadResidente,
+            
+            // 📁 ENVIAMOS LAS URLS REALES GENERADAS POR CLOUDINARY EN EL FORMATO DEL MODELO
+            urls: {
+                cedula: cloudCedulaUrl,
+                domicilio: cloudDomicilioUrl,
+                pago: cloudPagoUrl
+            },
+            tipoDocDomicilio: formData.tipoDocDomicilio || 'Doc. Domicilio'
+        };
+
+        // ==========================================
+        // PETICIÓN HTTP POST AL BACKEND LOCAL (Puerto 5000)
+        // ==========================================
+        try {
+            const respuesta = await fetch('https://backend-junta-vecinos.onrender.com/api/residentes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(datosParaBackend)
+            });
+
+            const resultado = await respuesta.json();
+
+            if (resultado.ok) {
+                alert(`¡Solicitud enviada exitosamente!\nSu número correlativo asignado por sistema es: ${resultado.data.correlativoSolicitud}`);
+
+                if (typeof props.onEnviar === 'function') {
+                    // 🛠️ FIX AQUÍ: Forzamos a que el objeto enviado al panel tenga la estructura
+                    // plana exacta que los hooks y visualizadores del frontend esperan mapear.
+                    const solicitudNormalizadaParaFrontend = {
+                        ...resultado.data,
+                        folio: resultado.data.correlativoSolicitud || `FOLIO-${resultado.data.id || '1003'}`,
+                        nombre: formData.nombre,
+                        rut: formData.rut,
+                        email: formData.email,
+                        direccion: formData.direccion, // Mantenemos el string completo ("Avenida Grecia 3348...")
+                        urls: {
+                            cedula: cloudCedulaUrl || resultado.data?.urls?.cedula,
+                            domicilio: cloudDomicilioUrl || resultado.data?.urls?.domicilio,
+                            pago: cloudPagoUrl || resultado.data?.urls?.pago
+                        }
+                    };
+                    props.onEnviar(solicitudNormalizadaParaFrontend);
+                }
+
+                // Limpiamos el formulario y los contenedores de archivos binarios
+                setFormData({
+                    nombre: '', rut: '', email: '', direccion: '',
+                    comuna: infoJunta.comuna || 'Ñuñoa', calidadResidente: 'Propietario',
+                    destino: '', montoPago: infoJunta.valorCertificado || '0',
+                    tipoDocDomicilio: 'Boleta de Servicio'
+                });
+                setArchivosRaw({ cedula: null, domicilio: null, comprobantePago: null });
+                setUrlsTemporales({ cedula: '', domicilio: '', comprobantePago: '' });
+                setRutError(false);
+
+            } else {
+                alert(`⚠️ Atención: ${resultado.msg}`);
+            }
+
+        } catch (error) {
+            console.error("Error al conectar con la API:", error);
+            alert("❌ No se pudo establecer conexión con el servidor de la Junta de Vecinos. Asegúrese de que el backend esté encendido.");
+        } finally {
+            setIsSubiendo(false); // Liberamos el formulario
+        }
+    };
 
     const renderArancel = () => {
         const valor = parseInt(infoJunta.valorCertificado);
@@ -171,7 +319,8 @@ export default function FormularioSolicitud(props) {
                 <button
                     type="button"
                     onClick={cargarDatosDemo}
-                    style={{ background: '#e2e8f0', color: '#4a5568', padding: '6px 12px', border: '1px dashed #cbd5e0', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                    disabled={isSubiendo}
+                    style={{ background: '#e2e8f0', color: '#4a5568', padding: '6px 12px', border: '1px dashed #cbd5e0', borderRadius: '4px', cursor: isSubiendo ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: 'bold' }}
                 >
                     ⚡ Autocompletar datos de Danilo (Prueba)
                 </button>
@@ -189,7 +338,7 @@ export default function FormularioSolicitud(props) {
                     <label style={{ fontWeight: '500', fontSize: '14px' }}>Nombre Completo:</label>
                     <input
                         type="text" name="nombre" value={formData.nombre} onChange={handleInputChange}
-                        placeholder="Ej: Juan Pérez González" required
+                        placeholder="Ej: Juan Pérez González" required disabled={isSubiendo}
                         style={{ width: '100%', padding: '10px', margin: '5px 0 10px 0', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                     />
 
@@ -198,7 +347,7 @@ export default function FormularioSolicitud(props) {
                             <label style={{ marginBottom: '5px', fontWeight: '500', fontSize: '14px' }}>RUT:</label>
                             <input
                                 type="text" name="rut" value={formData.rut} onChange={handleInputChange}
-                                placeholder="Ej: 10.703.900-7" maxLength="12" required
+                                placeholder="Ej: 10.703.900-7" maxLength="12" required disabled={isSubiendo}
                                 style={{ width: '100%', padding: '10px', borderRadius: '4px', border: rutError ? '2px solid #dc3545' : '1px solid #ccc', backgroundColor: rutError ? '#fff5f5' : '#fff', boxSizing: 'border-box' }}
                             />
                             {rutError && <span style={{ color: '#dc3545', fontSize: '11px', marginTop: '4px', fontWeight: 'bold' }}>⚠️ RUT inválido.</span>}
@@ -208,7 +357,7 @@ export default function FormularioSolicitud(props) {
                             <label style={{ marginBottom: '5px', fontWeight: '500', fontSize: '13px' }}>Tu Correo (Para Enlace Seguro):</label>
                             <input
                                 type="email" name="email" value={formData.email} onChange={handleInputChange}
-                                placeholder="nombre@correo.com" required
+                                placeholder="nombre@correo.com" required disabled={isSubiendo}
                                 style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', color: '#0056b3' }}
                             />
                         </div>
@@ -217,12 +366,12 @@ export default function FormularioSolicitud(props) {
                     <label style={{ fontWeight: '500', fontSize: '14px' }}>Dirección de Residencia:</label>
                     <input
                         type="text" name="direccion" value={formData.direccion} onChange={handleInputChange}
-                        placeholder="Ej: Avenida Grecia 3348, Depto 1713" required
+                        placeholder="Ej: Avenida Grecia 3348, Depto 1713" required disabled={isSubiendo}
                         style={{ width: '100%', padding: '10px', margin: '5px 0 10px 0', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                     />
 
                     <label style={{ fontWeight: '500', fontSize: '14px' }}>Condición de Vivienda:</label>
-                    <select name="calidadResidente" value={formData.calidadResidente} onChange={handleInputChange} style={{ width: '100%', padding: '10px', margin: '5px 0 10px 0', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}>
+                    <select name="calidadResidente" value={formData.calidadResidente} onChange={handleInputChange} disabled={isSubiendo} style={{ width: '100%', padding: '10px', margin: '5px 0 10px 0', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}>
                         <option value="Propietario">Propietario</option>
                         <option value="Arrendatario">Arrendatario</option>
                         <option value="Familiar del propietario">Familiar del propietario</option>
@@ -232,16 +381,15 @@ export default function FormularioSolicitud(props) {
                     <label style={{ fontWeight: '500', fontSize: '14px' }}>Presentado en:</label>
                     <input
                         type="text" name="destino" value={formData.destino} onChange={handleInputChange}
-                        placeholder="Ej: Universidad Andrés Bello" required
+                        placeholder="Ej: Universidad Andrés Bello" required disabled={isSubiendo}
                         style={{ width: '100%', padding: '10px', margin: '5px 0 10px 0', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                     />
                 </div>
 
-                {/* SECCIÓN 2: DOCUMENTOS DE RESPALDO (CORREGIDO SIN DUPLICADOS) */}
+                {/* SECCIÓN 2: DOCUMENTOS DE RESPALDO */}
                 <div>
                     <h3 style={{ fontSize: '15px', color: '#34495e', margin: '15px 0 10px 0' }}>2. Documentos de Respaldo</h3>
 
-                    {/* Fila superior: Ahora solo contiene la Cédula de Identidad ocupando todo el ancho o mitad */}
                     <div style={{ marginBottom: '15px' }}>
                         <label style={{ display: 'block', margin: '0 0 5px 0', fontWeight: '500', fontSize: '14px' }}>Cédula de Identidad (Ambos lados):</label>
                         <input
@@ -249,12 +397,12 @@ export default function FormularioSolicitud(props) {
                             name="cedula"
                             onChange={handleFileChange}
                             accept="image/*"
-                            required={!urlsTemporales?.cedula}
+                            required={!archivosRaw.cedula}
+                            disabled={isSubiendo}
                             style={{ width: '100%', fontSize: '13px' }}
                         />
                     </div>
 
-                    {/* Fila Inferior: Desplegable dinámico para el Documento de Domicilio */}
                     <div style={{ backgroundColor: '#f8f9fa', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', marginTop: '10px' }}>
                         <label style={{ display: 'block', margin: '0 0 8px 0', fontWeight: 'bold', fontSize: '13px', color: '#2c3e50' }}>
                             Documento Acreditador de Domicilio:
@@ -263,11 +411,9 @@ export default function FormularioSolicitud(props) {
 
                             <select
                                 name="tipoDocDomicilio"
-                                onChange={(e) => {
-                                    if (typeof handleInputChange === 'function') {
-                                        handleInputChange(e);
-                                    }
-                                }}
+                                value={formData.tipoDocDomicilio}
+                                onChange={handleInputChange}
+                                disabled={isSubiendo}
                                 style={{ padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#fff', fontSize: '13px', fontWeight: '500' }}
                             >
                                 <option value="Boleta de Servicio">📄 Boleta de Servicio (Luz, Agua, Gas)</option>
@@ -282,14 +428,15 @@ export default function FormularioSolicitud(props) {
                                 name="domicilio"
                                 onChange={handleFileChange}
                                 accept="image/*"
-                                required={!urlsTemporales?.domicilio}
+                                required={!archivosRaw.domicilio}
+                                disabled={isSubiendo}
                                 style={{ flex: 1, fontSize: '13px' }}
                             />
                         </div>
                     </div>
                 </div>
 
-                {/* SECCIÓN 3: PAGO DINÁMICO MULTI-TENANT */}
+                {/* SECCIÓN 3: PAGO DINÁMICO */}
                 <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '5px', border: '1px solid #e2e8f0' }}>
                     <h3 style={{ fontSize: '15px', color: '#34495e', margin: '0 0 10px 0' }}>3. Pago de Derechos Institucionales</h3>
 
@@ -309,7 +456,6 @@ export default function FormularioSolicitud(props) {
                                 <div><strong>Tipo de Cuenta:</strong> {infoJunta.tipoCuenta}</div>
                                 <div><strong>N° de Cuenta:</strong> <span style={{ fontFamily: 'monospace', fontSize: '14px', fontWeight: 'bold', backgroundColor: '#edf2f7', padding: '2px 6px', borderRadius: '3px' }}>{infoJunta.numeroCuenta}</span></div>
 
-                                {/* CAMPO REQUERIDO PARA LA APP DEL BANCO */}
                                 <div style={{ marginTop: '5px', padding: '8px', backgroundColor: '#fffaf0', border: '1px solid #feebc8', borderRadius: '4px' }}>
                                     <strong style={{ color: '#dd6b20' }}>📧 Correo destino para el Banco:</strong> <br />
                                     <span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 'bold', color: '#dd6b20' }}>{infoJunta.emailContacto}</span>
@@ -328,11 +474,32 @@ export default function FormularioSolicitud(props) {
                     <label style={{ display: 'block', margin: '10px 0 5px 0', fontWeight: '500', fontSize: '14px' }}>
                         Cargue el Comprobante de Transferencia Electrónica:
                     </label>
-                    <input type="file" name="comprobantePago" onChange={handleFileChange} accept="image/*" required={!urlsTemporales.comprobantePago} />
+                    <input 
+                        type="file" 
+                        name="comprobantePago" 
+                        onChange={handleFileChange} 
+                        accept="image/*" 
+                        required={!archivosRaw.comprobantePago} 
+                        disabled={isSubiendo}
+                    />
                 </div>
 
-                <button type="submit" style={{ background: '#28a745', color: 'white', padding: '14px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                    Enviar Solicitud Segura
+                <button 
+                    type="submit" 
+                    disabled={isSubiendo}
+                    style={{ 
+                        background: isSubiendo ? '#6c757d' : '#28a745', 
+                        color: 'white', 
+                        padding: '14px', 
+                        border: 'none', 
+                        borderRadius: '4px', 
+                        cursor: isSubiendo ? 'not-allowed' : 'pointer', 
+                        fontSize: '16px', 
+                        fontWeight: 'bold', 
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)' 
+                    }}
+                >
+                    {isSubiendo ? '⏳ Procesando y subiendo imágenes...' : 'Enviar Solicitud Segura'}
                 </button>
             </form>
         </div>

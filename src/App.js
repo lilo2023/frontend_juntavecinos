@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FormularioSolicitud from './features/vecino/FormularioSolicitud';
 import PanelAdmin from './features/junta/PanelAdmin';
 import DetalleRevision from './features/junta/DetalleRevision';
-import ConfiguracionJunta from './features/administracion/ConfiguracionJunta'; // Importamos el nuevo módulo SaaS
+import ConfiguracionJunta from './features/administracion/ConfiguracionJunta';
 
-// Bases de datos pre-cargadas basadas exactamente en los documentos reales adjuntos de Danilo
 const entidadesPreconfiguradas = {
   jjvv19: {
     id: 'jjvv19',
@@ -63,47 +62,112 @@ const entidadesPreconfiguradas = {
 };
 
 function App() {
-  const [resetKey, setResetKey] = useState(0); // ✨ Estado para limpiar el componente interno
-  const [vista, setVista] = useState('vecino'); // 'vecino', 'junta', 'config' o 'token-view'
+  const [resetKey, setResetKey] = useState(0);
+  const [vista, setVista] = useState('vecino');
   const [solicitudActivaToken, setSolicitudActivaToken] = useState(null);
 
-  // 1. CAPA DE PERSISTENCIA LOCAL: Carga las juntas del almacenamiento del navegador o usa las predefinidas
   const [juntas, setJuntas] = useState(() => {
     const guardadas = localStorage.getItem('saas_juntas');
     return guardadas ? JSON.parse(guardadas) : entidadesPreconfiguradas;
   });
 
-  // Estado que define cuál es la Junta/Entidad activa en la sesión del software
   const [juntaConfig, setJuntaConfig] = useState(() => {
     const guardadas = localStorage.getItem('saas_juntas');
     const pooljuntas = guardadas ? JSON.parse(guardadas) : entidadesPreconfiguradas;
     return pooljuntas.jjvv19;
   });
 
-  const [solicitudes, setSolicitudes] = useState([
-    {
-      id: 'FOLIO-006888',
-      nombre: 'María Elena Silva',
-      rut: '15.223.441-K',
-      email: 'm.silva@gmail.com',
-      direccion: 'Av. José Pedro Alessandri 1036',
-      calidadResidente: 'Arrendatario',
-      destino: 'Trámites Municipales',
-      montoPago: '1000',
-      estado: 'Pendiente',
-      ingreso: 'Hace 3 horas'
-    }
-  ]);
+  const [solicitudes, setSolicitudes] = useState([]);
 
-  const agregarSolicitud = (nuevaSolicitud) => {
-    setSolicitudes([nuevaSolicitud, ...solicitudes]);
-    alert(`¡Solicitud enviada! Se ha registrado el correo ${nuevaSolicitud.email} para el envío de su enlace seguro de acceso.`);
+  // ✅ FIX PROBLEMA 1: El useEffect ya NO depende de `vista`.
+  // Solo se dispara al entrar al panel (resetKey) o cambiar el arancel.
+  // Se controla con un flag `debeCargar` para no interferir con token-view.
+  const [debeCargar, setDebeCargar] = useState(false);
+
+  useEffect(() => {
+    if (!debeCargar) return;
+
+    const cargarSolicitudesDesdeBD = async () => {
+      try {
+        const respuesta = await fetch('https://backend-junta-vecinos.onrender.com/api/residentes');
+        const datos = await respuesta.json();
+
+        const solicitudesMapeadas = (Array.isArray(datos) ? datos : datos.data || []).map(sol => ({
+          id: sol._id,
+          folioTexto: `FOLIO-${sol.correlativoSolicitud || '1000'}`,
+          nombre: sol.nombre,
+          rut: sol.rut,
+          email: sol.correo,
+          direccion: typeof sol.direccion === 'object'
+            ? `${sol.direccion.calle} ${sol.direccion.numero}, ${sol.direccion.comuna}`
+            : sol.direccion,
+          calidadResidente: sol.tipoResidente || 'Propietario',
+          destino: sol.destino || 'Trámites Generales',
+          montoPago: juntaConfig.valorCertificado || '1000',
+          estado: sol.estado || 'Pendiente',
+          ingreso: sol.createdAt ? new Date(sol.createdAt).toLocaleDateString('es-CL') : 'Reciente',
+          urls: sol.urls || { cedula: '', domicilio: '', pago: '' }
+        }));
+
+        setSolicitudes(solicitudesMapeadas);
+      } catch (error) {
+        console.error("Error de sincronización con la API de MongoDB:", error);
+      } finally {
+        setDebeCargar(false);
+      }
+    };
+
+    cargarSolicitudesDesdeBD();
+  }, [debeCargar, resetKey, juntaConfig.valorCertificado]);
+
+  const agregarSolicitud = () => {
+    alert('¡Solicitud procesada exitosamente en el sistema seguro!');
+    setDebeCargar(true);
+    setVista('junta');
   };
 
-  const actualizarEstadoSolicitud = (id, nuevoEstado, motivo = '') => {
-    setSolicitudes(solicitudes.map(sol =>
-      sol.id === id ? { ...sol, estado: nuevoEstado, motivoRechazo: motivo, fechaEmision: new Date().toLocaleDateString('es-CL') } : sol
+  // ✅ FIX PROBLEMA 2 y 3: Llama al backend con PATCH y actualiza
+  // solicitudActivaToken con el objeto ya aprobado ANTES de cambiar vista,
+  // así token-view siempre tiene el estado correcto sin depender del array.
+  const actualizarEstadoSolicitud = async (id, nuevoEstado, motivo = '') => {
+    const fechaEmision = new Date().toLocaleDateString('es-CL');
+
+    // FIX PROBLEMA 3: Persistir en MongoDB
+    try {
+      await fetch(`https://backend-junta-vecinos.onrender.com/api/residentes/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: nuevoEstado, motivoRechazo: motivo, juntaConfig })
+      });
+    } catch (error) {
+      console.error("Error al persistir estado en MongoDB:", error);
+      // Continuamos igual — el estado local igual se actualiza
+    }
+
+    // Actualizamos el array local
+    setSolicitudes(prev => prev.map(sol =>
+      sol.id === id
+        ? { ...sol, estado: nuevoEstado, motivoRechazo: motivo, fechaEmision }
+        : sol
     ));
+
+    // FIX PROBLEMA 2: Construimos el token desde el array ANTES del setSolicitudes
+    // usando la referencia directa, no la búsqueda posterior
+    const solicitudBase = solicitudes.find(s => s.id === id);
+    if (solicitudBase) {
+      const copiaActualizada = {
+        ...solicitudBase,
+        estado: nuevoEstado,
+        motivoRechazo: motivo,
+        fechaEmision
+      };
+      // Guardamos el objeto completo y ya aprobado como token activo
+      setSolicitudActivaToken(copiaActualizada);
+
+      if (nuevoEstado === 'Aprobado') {
+        setVista('token-view');
+      }
+    }
   };
 
   const simularClicEnlaceCorreo = (solicitud) => {
@@ -111,53 +175,41 @@ function App() {
     setVista('token-view');
   };
 
-  // Cambia dinámicamente todo el entorno de datos al seleccionar otra entidad del listado reactivo
   const handleCambioEntidadDemo = (e) => {
-    const seleccionada = e.target.value;
-    setJuntaConfig(juntas[seleccionada]);
+    setJuntaConfig(juntas[e.target.value]);
   };
 
-  // 2. FUNCIÓN MOTOR SAAS: Añade de verdad el nuevo tenant a la memoria y persiste en disco duro local
   const handleGuardarConfiguracion = (nuevaConfig) => {
-    // Si es una junta totalmente nueva, le generamos un ID único en el sistema
     const esNueva = nuevaConfig.id === 'nuevaJunta';
     const idTenant = esNueva ? `junta-${Date.now()}` : nuevaConfig.id;
-
     const configConId = { ...nuevaConfig, id: idTenant };
 
     setJuntas((prevJuntas) => {
-      // Si era nueva, restauramos la opción vacía "nuevaJunta" para posteriores registros
-      const limpiadas = esNueva ? { ...prevJuntas, nuevaJunta: entidadesPreconfiguradas.nuevaJunta } : prevJuntas;
-
-      const diccionarioActualizado = {
-        ...limpiadas,
-        [idTenant]: configConId
-      };
-
+      const limpiadas = esNueva
+        ? { ...prevJuntas, nuevaJunta: entidadesPreconfiguradas.nuevaJunta }
+        : prevJuntas;
+      const diccionarioActualizado = { ...limpiadas, [idTenant]: configConId };
       localStorage.setItem('saas_juntas', JSON.stringify(diccionarioActualizado));
       return diccionarioActualizado;
     });
 
-    // Cambiamos la sesión de inmediato a la junta que se acaba de configurar o guardar
     setJuntaConfig(configConId);
   };
+
   const irAlPanelJunta = () => {
+    setDebeCargar(true);
     if (vista === 'junta') {
-      // Si ya estás ahí metido en las fotos, incrementamos la key para forzar 
-      // a PanelAdmin a destruir su estado 'solicitudSeleccionada' y volver a la lista
       setResetKey(prev => prev + 1);
     } else {
       setVista('junta');
     }
   };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa', fontFamily: 'Arial' }}>
-
-      {/* Barra de Navegación del Entorno de Desarrollo (SaaS Multi-Entidad) */}
       <nav style={{ backgroundColor: '#2d3436', padding: '12px 20px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.1)', flexWrap: 'wrap' }}>
         <span style={{ color: '#fff', fontWeight: 'bold', marginRight: '10px' }}>🛠️ PLATAFORMA JJVV SAAS</span>
 
-        {/* Selector de Entidad Dinámico enlazado al estado persistente */}
         <div style={{ backgroundColor: '#4b4b4b', padding: '4px 8px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ color: '#00d2d3', fontSize: '12px', fontWeight: 'bold' }}>Entidad Activa:</span>
           <select
@@ -165,10 +217,11 @@ function App() {
             value={juntaConfig.id}
             style={{ backgroundColor: '#2d3436', color: '#fff', border: '1px solid #636e72', padding: '4px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', maxWidth: '250px' }}
           >
-            {/* Mapea dinámicamente todas las Juntas creadas en el LocalStorage */}
             {Object.values(juntas).map((junta) => (
               <option key={junta.id} value={junta.id}>
-                {junta.id === 'nuevaJunta' ? '＋ Registrar Nueva Junta de Vecinos...' : `${junta.nombreJunta || 'Sin Nombre'} (Arancel $${junta.valorCertificado || 0})`}
+                {junta.id === 'nuevaJunta'
+                  ? '＋ Registrar Nueva Junta de Vecinos...'
+                  : `${junta.nombreJunta || 'Sin Nombre'} (Arancel $${junta.valorCertificado || 0})`}
               </option>
             ))}
           </select>
@@ -182,10 +235,10 @@ function App() {
         </button>
 
         <button
-          onClick={irAlPanelJunta} // ✨ Modificado para que use la función limpiadora
+          onClick={irAlPanelJunta}
           style={{ padding: '8px 14px', backgroundColor: vista === 'junta' ? '#28a745' : '#636e72', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
         >
-          2. Panel Operador Junta ({solicitudes.filter(s => s.estado === 'Pendiente').length} Pendientes)
+          2. Panel Operador Junta ({solicitudes.filter(s => s.estado === 'Pendiente').length} Real/es)
         </button>
 
         <button
@@ -205,25 +258,20 @@ function App() {
         )}
       </nav>
 
-      {/* Ruteador Condicional de Vistas */}
       <main style={{ padding: '15px' }}>
-
-        {/* Vista 1: Formulario Vecino */}
         {vista === 'vecino' && (
           <FormularioSolicitud onEnviar={agregarSolicitud} juntaConfig={juntaConfig} />
         )}
 
-        {/* Vista 2: Panel de Administración Operativa */}
         {vista === 'junta' && (
           <PanelAdmin
-            key={resetKey} // ✨ Esto destruirá el estado 'solicitudSeleccionada' volviéndolo a null instantáneamente
+            key={resetKey}
             listaSolicitudes={solicitudes}
             onActualizarEstado={actualizarEstadoSolicitud}
             onSimularEmail={simularClicEnlaceCorreo}
           />
         )}
 
-        {/* Vista 3: Módulo de Configuración SaaS */}
         {vista === 'config' && (
           <ConfiguracionJunta
             configActual={juntaConfig}
@@ -231,14 +279,16 @@ function App() {
           />
         )}
 
-        {/* Vista 4: Token Link del Vecino */}
+        {/* ✅ FIX CLAVE: token-view usa solicitudActivaToken DIRECTAMENTE,
+            no busca en el array de solicitudes. Así el estado aprobado
+            nunca se sobreescribe por una recarga de MongoDB. */}
         {vista === 'token-view' && solicitudActivaToken && (
           <div style={{ padding: '10px' }}>
             <div style={{ maxWidth: '800px', margin: '0 auto', background: '#fff3cd', border: '1px solid #ffeeba', padding: '12px', borderRadius: '5px', marginBottom: '15px', fontSize: '13px', color: '#856404' }}>
               <strong>Seguridad Token Link Activa:</strong> Acceso seguro concedido al residente. El documento inferior se adaptará estructuralmente según los parámetros de <strong>{juntaConfig.nombreJunta}</strong>.
             </div>
             <DetalleRevision
-              solicitud={solicitudes.find(s => s.id === solicitudActivaToken.id)}
+              solicitud={solicitudActivaToken}
               soloLecturaVecino={true}
               onVolver={() => setVista('vecino')}
               juntaConfig={juntaConfig}

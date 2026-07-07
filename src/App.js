@@ -6,6 +6,7 @@ import ConfiguracionJunta from './features/administracion/ConfiguracionJunta';
 import LandingPage from './features/autenticacion/LandingPage';
 import LoginRegister from './features/autenticacion/LoginRegister';
 import MisSolicitudes from './features/vecino/MisSolicitudes';
+import IdentificadorJunta from './features/vecino/IdentificadorJunta';
 
 const entidadesPreconfiguradas = {
   jjvv19: {
@@ -73,6 +74,7 @@ function App() {
     return saved ? JSON.parse(saved) : null;
   });
   const [solicitudActivaToken, setSolicitudActivaToken] = useState(null);
+  const [juntaConfirmada, setJuntaConfirmada] = useState(false);
 
   const [juntas, setJuntas] = useState(() => {
     const guardadas = localStorage.getItem('saas_juntas');
@@ -216,6 +218,7 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('user_session');
     setSession(null);
+    setJuntaConfirmada(false);
     setVista('landing');
   };
 
@@ -232,6 +235,7 @@ function App() {
             onLoginSuccess={(user) => {
               localStorage.setItem('user_session', JSON.stringify(user));
               setSession(user);
+              setJuntaConfirmada(false);
               if (user.role === 'vecino') {
                 setVista('vecino');
               } else {
@@ -405,7 +409,44 @@ function App() {
 
       <main style={{ padding: '24px 15px' }}>
         {vista === 'vecino' && (
-          <FormularioSolicitud onEnviar={agregarSolicitud} juntaConfig={juntaConfig} userSession={session} />
+          !juntaConfirmada ? (
+            <IdentificadorJunta 
+              onConfirmarJunta={(jConfig) => {
+                setJuntaConfig(jConfig);
+                setJuntaConfirmada(true);
+              }} 
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <button
+                onClick={() => setJuntaConfirmada(false)}
+                style={{
+                  alignSelf: 'flex-start',
+                  maxWidth: '600px',
+                  width: '100%',
+                  margin: '0 auto 15px auto',
+                  background: 'none',
+                  border: 'none',
+                  color: '#2563eb',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                ← Volver a buscar / cambiar Junta de Vecinos
+              </button>
+              <FormularioSolicitud 
+                onEnviar={agregarSolicitud} 
+                juntaConfig={juntaConfig} 
+                userSession={session} 
+              />
+            </div>
+          )
         )}
 
         {vista === 'mis-solicitudes' && (

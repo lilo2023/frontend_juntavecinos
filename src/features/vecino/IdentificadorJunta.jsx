@@ -434,6 +434,24 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
                             </div>
                         </div>
 
+                        {/* Mapa Interactivo Incrustado (Google My Maps Real de Ñuñoa) */}
+                        <div style={{ 
+                            marginBottom: '24px', 
+                            borderRadius: '12px', 
+                            overflow: 'hidden', 
+                            border: '1px solid #cbd5e1',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                            height: '280px'
+                        }}>
+                            <iframe 
+                                src={`https://www.google.com/maps/d/embed?mid=1hkzE_86ZILbT8z4ieFgMpJx8cHouGYhK&ll=${juntaSugerida.lat},${juntaSugerida.lng}&z=16`}
+                                width="100%" 
+                                height="280" 
+                                style={{ border: 'none', marginTop: '-46px' }} // Desplaza la barra superior del visor de My Maps para un aspecto más limpio
+                                title="Mapa Juntas de Vecinos Ñuñoa"
+                            ></iframe>
+                        </div>
+
                         {/* RF-11 Check: warning alert if JVV config in localStorage is incomplete */}
                         {juntaSugerida.id !== 'jjvv19' && (
                             <div style={{

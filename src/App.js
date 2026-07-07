@@ -3,6 +3,9 @@ import FormularioSolicitud from './features/vecino/FormularioSolicitud';
 import PanelAdmin from './features/junta/PanelAdmin';
 import DetalleRevision from './features/junta/DetalleRevision';
 import ConfiguracionJunta from './features/administracion/ConfiguracionJunta';
+import LandingPage from './features/autenticacion/LandingPage';
+import LoginRegister from './features/autenticacion/LoginRegister';
+import MisSolicitudes from './features/vecino/MisSolicitudes';
 
 const entidadesPreconfiguradas = {
   jjvv19: {
@@ -63,7 +66,12 @@ const entidadesPreconfiguradas = {
 
 function App() {
   const [resetKey, setResetKey] = useState(0);
-  const [vista, setVista] = useState('vecino');
+  const [vista, setVista] = useState('landing');
+  const [authRole, setAuthRole] = useState(null);
+  const [session, setSession] = useState(() => {
+    const saved = localStorage.getItem('user_session');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [solicitudActivaToken, setSolicitudActivaToken] = useState(null);
 
   const [juntas, setJuntas] = useState(() => {
@@ -123,7 +131,7 @@ function App() {
   const agregarSolicitud = () => {
     alert('¡Solicitud procesada exitosamente en el sistema seguro!');
     setDebeCargar(true);
-    setVista('junta');
+    setVista('mis-solicitudes');
   };
 
   // ✅ FIX PROBLEMA 2 y 3: Llama al backend con PATCH y actualiza
@@ -205,62 +213,207 @@ function App() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('user_session');
+    setSession(null);
+    setVista('landing');
+  };
+
+  if (!session) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: "'Outfit', sans-serif" }}>
+        {vista === 'landing' && (
+          <LandingPage onSelectRole={(role) => { setAuthRole(role); setVista('login'); }} />
+        )}
+        {vista === 'login' && (
+          <LoginRegister 
+            role={authRole} 
+            onBack={() => setVista('landing')} 
+            onLoginSuccess={(user) => {
+              localStorage.setItem('user_session', JSON.stringify(user));
+              setSession(user);
+              if (user.role === 'vecino') {
+                setVista('vecino');
+              } else {
+                setVista('junta');
+                setDebeCargar(true);
+              }
+            }} 
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Filtrar solicitudes para el vecino logueado
+  const solicitudesFiltradas = session.role === 'vecino'
+    ? solicitudes.filter(s => s.rut === session.rut)
+    : solicitudes;
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa', fontFamily: 'Arial' }}>
-      <nav style={{ backgroundColor: '#2d3436', padding: '12px 20px', display: 'flex', gap: '12px', alignItems: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.1)', flexWrap: 'wrap' }}>
-        <span style={{ color: '#fff', fontWeight: 'bold', marginRight: '10px' }}>🛠️ PLATAFORMA JJVV SAAS</span>
-
-        <div style={{ backgroundColor: '#4b4b4b', padding: '4px 8px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#00d2d3', fontSize: '12px', fontWeight: 'bold' }}>Entidad Activa:</span>
-          <select
-            onChange={handleCambioEntidadDemo}
-            value={juntaConfig.id}
-            style={{ backgroundColor: '#2d3436', color: '#fff', border: '1px solid #636e72', padding: '4px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', maxWidth: '250px' }}
-          >
-            {Object.values(juntas).map((junta) => (
-              <option key={junta.id} value={junta.id}>
-                {junta.id === 'nuevaJunta'
-                  ? '＋ Registrar Nueva Junta de Vecinos...'
-                  : `${junta.nombreJunta || 'Sin Nombre'} (Arancel $${junta.valorCertificado || 0})`}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button
-          onClick={() => setVista('vecino')}
-          style={{ padding: '8px 14px', backgroundColor: vista === 'vecino' ? '#007bff' : '#636e72', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: "'Outfit', sans-serif" }}>
+      <nav style={{ 
+        backgroundColor: '#0f172a', 
+        padding: '14px 24px', 
+        display: 'flex', 
+        gap: '16px', 
+        alignItems: 'center', 
+        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', 
+        flexWrap: 'wrap',
+        fontFamily: "'Outfit', sans-serif" 
+      }}>
+        <span 
+          style={{ color: '#fff', fontWeight: '800', marginRight: '16px', fontSize: '18px', cursor: 'pointer' }}
+          onClick={() => {
+            if (session.role === 'vecino') setVista('vecino');
+            else irAlPanelJunta();
+          }}
         >
-          1. Formulario Vecino
-        </button>
+          🏘️ JJVV SAAS
+        </span>
 
-        <button
-          onClick={irAlPanelJunta}
-          style={{ padding: '8px 14px', backgroundColor: vista === 'junta' ? '#28a745' : '#636e72', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
-        >
-          2. Panel Operador Junta ({solicitudes.filter(s => s.estado === 'Pendiente').length} Real/es)
-        </button>
+        {session.role === 'junta' && (
+          <div style={{ backgroundColor: '#1e293b', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #334155' }}>
+            <span style={{ color: '#38bdf8', fontSize: '13px', fontWeight: 'bold' }}>Entidad Activa:</span>
+            <select
+              onChange={handleCambioEntidadDemo}
+              value={juntaConfig.id}
+              style={{ backgroundColor: '#0f172a', color: '#fff', border: '1px solid #475569', padding: '6px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold', maxWidth: '250px', outline: 'none' }}
+            >
+              {Object.values(juntas).map((junta) => (
+                <option key={junta.id} value={junta.id}>
+                  {junta.id === 'nuevaJunta'
+                    ? '＋ Registrar Nueva Junta...'
+                    : `${junta.nombreJunta || 'Sin Nombre'} (Arancel $${junta.valorCertificado || 0})`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
-        <button
-          onClick={() => setVista('config')}
-          style={{ padding: '8px 14px', backgroundColor: vista === 'config' ? '#3498db' : '#636e72', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
-        >
-          ⚙️ 3. Configuración Institucional
-        </button>
+        {session.role === 'vecino' && (
+          <>
+            <button
+              onClick={() => setVista('vecino')}
+              style={{ 
+                padding: '10px 18px', 
+                backgroundColor: vista === 'vecino' ? '#2563eb' : 'transparent', 
+                color: '#fff', 
+                border: 'none', 
+                borderRadius: '8px', 
+                cursor: 'pointer', 
+                fontWeight: '600', 
+                fontSize: '14px',
+                transition: 'all 0.2s'
+              }}
+            >
+              📝 Solicitar Certificado
+            </button>
+            <button
+              onClick={() => { setDebeCargar(true); setVista('mis-solicitudes'); }}
+              style={{ 
+                padding: '10px 18px', 
+                backgroundColor: vista === 'mis-solicitudes' ? '#2563eb' : 'transparent', 
+                color: '#fff', 
+                border: 'none', 
+                borderRadius: '8px', 
+                cursor: 'pointer', 
+                fontWeight: '600', 
+                fontSize: '14px',
+                transition: 'all 0.2s'
+              }}
+            >
+              📋 Mis Solicitudes ({solicitudesFiltradas.length})
+            </button>
+          </>
+        )}
+
+        {session.role === 'junta' && (
+          <>
+            <button
+              onClick={irAlPanelJunta}
+              style={{ 
+                padding: '10px 18px', 
+                backgroundColor: vista === 'junta' ? '#10b981' : 'transparent', 
+                color: '#fff', 
+                border: 'none', 
+                borderRadius: '8px', 
+                cursor: 'pointer', 
+                fontWeight: '600', 
+                fontSize: '14px',
+                transition: 'all 0.2s'
+              }}
+            >
+              📥 Bandeja de Entrada ({solicitudes.filter(s => s.estado === 'Pendiente').length} Pendientes)
+            </button>
+            <button
+              onClick={() => setVista('config')}
+              style={{ 
+                padding: '10px 18px', 
+                backgroundColor: vista === 'config' ? '#0ea5e9' : 'transparent', 
+                color: '#fff', 
+                border: 'none', 
+                borderRadius: '8px', 
+                cursor: 'pointer', 
+                fontWeight: '600', 
+                fontSize: '14px',
+                transition: 'all 0.2s'
+              }}
+            >
+              ⚙️ Configuración Institucional
+            </button>
+          </>
+        )}
 
         {solicitudActivaToken && (
           <button
             onClick={() => setVista('token-view')}
-            style={{ padding: '8px 14px', backgroundColor: vista === 'token-view' ? '#e67e22' : '#d35400', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginLeft: 'auto', fontSize: '13px' }}
+            style={{ padding: '10px 18px', backgroundColor: vista === 'token-view' ? '#f97316' : '#ea580c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', marginLeft: 'auto', fontSize: '13px' }}
           >
-            🔓 Simular Enlace Correo del Vecino
+            🔓 Simular Enlace Correo
           </button>
         )}
+
+        {/* Info de usuario y Cierre de Sesión */}
+        <div style={{ 
+          marginLeft: solicitudActivaToken ? '12px' : 'auto', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '14px' 
+        }}>
+          <span style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: '500' }}>
+            👤 {session.nombre}
+          </span>
+          <button
+            onClick={handleLogout}
+            style={{ 
+              padding: '8px 14px', 
+              backgroundColor: '#334155', 
+              color: '#f8fafc', 
+              border: 'none', 
+              borderRadius: '8px', 
+              cursor: 'pointer', 
+              fontWeight: '600', 
+              fontSize: '13px',
+              transition: 'all 0.2s'
+            }}
+          >
+            Cerrar Sesión
+          </button>
+        </div>
       </nav>
 
-      <main style={{ padding: '15px' }}>
+      <main style={{ padding: '24px 15px' }}>
         {vista === 'vecino' && (
-          <FormularioSolicitud onEnviar={agregarSolicitud} juntaConfig={juntaConfig} />
+          <FormularioSolicitud onEnviar={agregarSolicitud} juntaConfig={juntaConfig} userSession={session} />
+        )}
+
+        {vista === 'mis-solicitudes' && (
+          <MisSolicitudes 
+            solicitudes={solicitudesFiltradas} 
+            onVerDetalle={(sol) => { setSolicitudActivaToken(sol); setVista('token-view'); }} 
+            onNuevaSolicitud={() => setVista('vecino')} 
+          />
         )}
 
         {vista === 'junta' && (
@@ -279,18 +432,18 @@ function App() {
           />
         )}
 
-        {/* ✅ FIX CLAVE: token-view usa solicitudActivaToken DIRECTAMENTE,
-            no busca en el array de solicitudes. Así el estado aprobado
-            nunca se sobreescribe por una recarga de MongoDB. */}
         {vista === 'token-view' && solicitudActivaToken && (
           <div style={{ padding: '10px' }}>
-            <div style={{ maxWidth: '800px', margin: '0 auto', background: '#fff3cd', border: '1px solid #ffeeba', padding: '12px', borderRadius: '5px', marginBottom: '15px', fontSize: '13px', color: '#856404' }}>
+            <div style={{ maxWidth: '800px', margin: '0 auto', background: '#fef3c7', border: '1px solid #fde68a', padding: '16px', borderRadius: '12px', marginBottom: '20px', fontSize: '14px', color: '#78350f', fontWeight: '500' }}>
               <strong>Seguridad Token Link Activa:</strong> Acceso seguro concedido al residente. El documento inferior se adaptará estructuralmente según los parámetros de <strong>{juntaConfig.nombreJunta}</strong>.
             </div>
             <DetalleRevision
               solicitud={solicitudActivaToken}
               soloLecturaVecino={true}
-              onVolver={() => setVista('vecino')}
+              onVolver={() => {
+                if (session.role === 'vecino') setVista('mis-solicitudes');
+                else setVista('junta');
+              }}
               juntaConfig={juntaConfig}
             />
           </div>

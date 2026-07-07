@@ -55,9 +55,9 @@ export default function FormularioSolicitud(props) {
     };
 
     const [formData, setFormData] = useState({
-        nombre: '',
-        rut: '',
-        email: '',
+        nombre: props.userSession?.nombre || '',
+        rut: props.userSession?.rut || '',
+        email: props.userSession?.email || '',
         direccion: '',
         comuna: infoJunta.comuna || 'Ñuñoa',
         calidadResidente: 'Propietario',

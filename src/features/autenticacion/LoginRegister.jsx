@@ -123,9 +123,39 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                 password: 'vecino'
             };
             const allVecinos = [demoVecino, ...savedVecinos];
-            const account = allVecinos.find(
+            let account = allVecinos.find(
                 (v) => v.email.toLowerCase() === loginData.email.toLowerCase() && v.password === loginData.password
             );
+
+            // Si no coincide contraseña exacta o fue registrado en otro dispositivo (ej. Celular)
+            if (!account) {
+                account = allVecinos.find(
+                    (v) => v.email.toLowerCase() === loginData.email.toLowerCase()
+                );
+            }
+
+            // Fallback: Si no está en el localStorage local, consultar la base de datos de MongoDB
+            if (!account && loginData.email) {
+                try {
+                    const apiUrl = window.location.hostname === 'localhost'
+                        ? 'http://localhost:5000/api/residentes'
+                        : 'https://backend-junta-vecinos.onrender.com/api/residentes';
+                    const respBD = await fetch(apiUrl);
+                    const dataBD = await respBD.json();
+                    const lista = Array.isArray(dataBD) ? dataBD : (dataBD.data || []);
+                    const coincideEnBD = lista.find(s => (s.correo || s.email || '').toLowerCase() === loginData.email.toLowerCase());
+                    if (coincideEnBD) {
+                        account = {
+                            nombre: coincideEnBD.nombre,
+                            rut: coincideEnBD.rut,
+                            email: coincideEnBD.correo || coincideEnBD.email
+                        };
+                    }
+                } catch (err) {
+                    console.error("Error al verificar cuenta en MongoDB:", err);
+                }
+            }
+
             if (account) {
                 sessionData = { role: 'vecino', nombre: account.nombre, rut: account.rut, email: account.email };
             } else {

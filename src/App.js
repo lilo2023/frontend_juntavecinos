@@ -65,45 +65,88 @@ const entidadesPreconfiguradas = {
   }
 };
 
+const getApiUrl = () => {
+  return window.location.hostname === 'localhost'
+    ? 'http://localhost:5000/api/residentes'
+    : 'https://backend-junta-vecinos.onrender.com/api/residentes';
+};
+
 function App() {
   const [resetKey, setResetKey] = useState(0);
-  const [vista, setVista] = useState('landing');
   const [authRole, setAuthRole] = useState(null);
   const [session, setSession] = useState(() => {
     const saved = localStorage.getItem('user_session');
     return saved ? JSON.parse(saved) : null;
   });
+
+  const [vista, setVista] = useState(() => {
+    const saved = localStorage.getItem('user_session');
+    if (!saved) return 'landing';
+    const user = JSON.parse(saved);
+    if (user.role === 'vecino') return 'vecino';
+    // Para junta: verificar si ya tiene config completa
+    const guardadas = localStorage.getItem('saas_juntas');
+    const guardadasParsed = guardadas ? JSON.parse(guardadas) : {};
+    const poolCompleto = { ...entidadesPreconfiguradas, ...guardadasParsed };
+    const configJunta = poolCompleto[user.idJunta];
+    const esNueva = !configJunta || !configJunta.rutJunta;
+    return esNueva ? 'config' : 'junta';
+  });
   const [solicitudActivaToken, setSolicitudActivaToken] = useState(null);
   const [juntaConfirmada, setJuntaConfirmada] = useState(false);
+  const [solicitudAEditar, setSolicitudAEditar] = useState(null);
 
   const [juntas, setJuntas] = useState(() => {
     const guardadas = localStorage.getItem('saas_juntas');
-    return guardadas ? JSON.parse(guardadas) : entidadesPreconfiguradas;
+    const guardadasParsed = guardadas ? JSON.parse(guardadas) : {};
+    // Siempre fusionar: las preconfiguradas son la base, localStorage las complementa/sobreescribe
+    return { ...entidadesPreconfiguradas, ...guardadasParsed };
   });
 
   const [juntaConfig, setJuntaConfig] = useState(() => {
     const guardadas = localStorage.getItem('saas_juntas');
-    const pooljuntas = guardadas ? JSON.parse(guardadas) : entidadesPreconfiguradas;
+    const guardadasParsed = guardadas ? JSON.parse(guardadas) : {};
+    const pooljuntas = { ...entidadesPreconfiguradas, ...guardadasParsed };
     return pooljuntas.jjvv19;
   });
 
   const [solicitudes, setSolicitudes] = useState([]);
+  // Iniciar en true si hay sesión de junta activa para disparar el fetch al cargar
+  const [debeCargar, setDebeCargar] = useState(() => {
+    const saved = localStorage.getItem('user_session');
+    if (!saved) return false;
+    const user = JSON.parse(saved);
+    return user.role === 'junta';
+  });
 
-  // ✅ FIX PROBLEMA 1: El useEffect ya NO depende de `vista`.
-  // Solo se dispara al entrar al panel (resetKey) o cambiar el arancel.
-  // Se controla con un flag `debeCargar` para no interferir con token-view.
-  const [debeCargar, setDebeCargar] = useState(false);
+  // Sincroniza juntas y carga la configuración de la junta activa al iniciar sesión
+  useEffect(() => {
+    const guardadas = localStorage.getItem('saas_juntas');
+    const guardadasParsed = guardadas ? JSON.parse(guardadas) : {};
+    // Fusionar siempre para no perder las preconfiguradas
+    const pooljuntas = { ...entidadesPreconfiguradas, ...guardadasParsed };
+    setJuntas(pooljuntas);
+
+    if (session && session.role === 'junta') {
+      const idActive = session.idJunta || 'jjvv19';
+      const configActiva = pooljuntas[idActive];
+      if (configActiva) {
+        setJuntaConfig(configActiva);
+      }
+    }
+  }, [session]);
 
   useEffect(() => {
     if (!debeCargar) return;
 
     const cargarSolicitudesDesdeBD = async () => {
       try {
-        const respuesta = await fetch('https://backend-junta-vecinos.onrender.com/api/residentes');
+        const respuesta = await fetch(getApiUrl());
         const datos = await respuesta.json();
 
         const solicitudesMapeadas = (Array.isArray(datos) ? datos : datos.data || []).map(sol => ({
           id: sol._id,
+          idJunta: sol.idJunta || 'jjvv19',
           folioTexto: `FOLIO-${sol.correlativoSolicitud || '1000'}`,
           nombre: sol.nombre,
           rut: sol.rut,
@@ -115,7 +158,10 @@ function App() {
           destino: sol.destino || 'Trámites Generales',
           montoPago: juntaConfig.valorCertificado || '1000',
           estado: sol.estado || 'Pendiente',
-          ingreso: sol.createdAt ? new Date(sol.createdAt).toLocaleDateString('es-CL') : 'Reciente',
+          motivoRechazo: sol.motivoRechazo || '',
+          ingreso: sol.createdAt 
+            ? `${new Date(sol.createdAt).toLocaleDateString('es-CL')} ${new Date(sol.createdAt).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}` 
+            : 'Reciente',
           urls: sol.urls || { cedula: '', domicilio: '', pago: '' }
         }));
 
@@ -131,7 +177,7 @@ function App() {
   }, [debeCargar, resetKey, juntaConfig.valorCertificado]);
 
   const agregarSolicitud = () => {
-    alert('¡Solicitud procesada exitosamente en el sistema seguro!');
+    setSolicitudAEditar(null);
     setDebeCargar(true);
     setVista('mis-solicitudes');
   };
@@ -144,7 +190,7 @@ function App() {
 
     // FIX PROBLEMA 3: Persistir en MongoDB
     try {
-      await fetch(`https://backend-junta-vecinos.onrender.com/api/residentes/${id}`, {
+      await fetch(`${getApiUrl()}/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estado: nuevoEstado, motivoRechazo: motivo, juntaConfig })
@@ -239,8 +285,18 @@ function App() {
               if (user.role === 'vecino') {
                 setVista('vecino');
               } else {
-                setVista('junta');
-                setDebeCargar(true);
+                // Fusionar preconfiguradas + localStorage para no perder jjvv19
+                const guardadas = localStorage.getItem('saas_juntas');
+                const guardadasParsed = guardadas ? JSON.parse(guardadas) : {};
+                const poolCompleto = { ...entidadesPreconfiguradas, ...guardadasParsed };
+                const configJunta = poolCompleto[user.idJunta];
+                const esNueva = !configJunta || !configJunta.rutJunta;
+                if (esNueva) {
+                  setVista('config');
+                } else {
+                  setVista('junta');
+                  setDebeCargar(true);
+                }
               }
             }} 
           />
@@ -249,10 +305,11 @@ function App() {
     );
   }
 
-  // Filtrar solicitudes para el vecino logueado
+  // Filtrar solicitudes por rol y por junta activa
+  // Las solicitudes sin idJunta (legacy) se asignan por defecto a jjvv19
   const solicitudesFiltradas = session.role === 'vecino'
     ? solicitudes.filter(s => s.rut === session.rut)
-    : solicitudes;
+    : solicitudes.filter(s => (s.idJunta || 'jjvv19') === (session.idJunta || 'jjvv19'));
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: "'Outfit', sans-serif" }}>
@@ -279,19 +336,9 @@ function App() {
         {session.role === 'junta' && (
           <div style={{ backgroundColor: '#1e293b', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #334155' }}>
             <span style={{ color: '#38bdf8', fontSize: '13px', fontWeight: 'bold' }}>Entidad Activa:</span>
-            <select
-              onChange={handleCambioEntidadDemo}
-              value={juntaConfig.id}
-              style={{ backgroundColor: '#0f172a', color: '#fff', border: '1px solid #475569', padding: '6px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold', maxWidth: '250px', outline: 'none' }}
-            >
-              {Object.values(juntas).map((junta) => (
-                <option key={junta.id} value={junta.id}>
-                  {junta.id === 'nuevaJunta'
-                    ? '＋ Registrar Nueva Junta...'
-                    : `${junta.nombreJunta || 'Sin Nombre'} (Arancel $${junta.valorCertificado || 0})`}
-                </option>
-              ))}
-            </select>
+            <span style={{ color: '#fff', fontSize: '13px', fontWeight: 'bold', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {juntaConfig?.nombreJunta || 'Sin nombre'}
+            </span>
           </div>
         )}
 
@@ -348,7 +395,7 @@ function App() {
                 transition: 'all 0.2s'
               }}
             >
-              📥 Bandeja de Entrada ({solicitudes.filter(s => s.estado === 'Pendiente').length} Pendientes)
+              📥 Bandeja de Entrada ({solicitudesFiltradas.filter(s => s.estado === 'Pendiente').length} Pendientes)
             </button>
             <button
               onClick={() => setVista('config')}
@@ -364,19 +411,12 @@ function App() {
                 transition: 'all 0.2s'
               }}
             >
-              ⚙️ Configuración Institucional
+              🏛️ Datos de mi Junta
             </button>
           </>
         )}
 
-        {solicitudActivaToken && (
-          <button
-            onClick={() => setVista('token-view')}
-            style={{ padding: '10px 18px', backgroundColor: vista === 'token-view' ? '#f97316' : '#ea580c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', marginLeft: 'auto', fontSize: '13px' }}
-          >
-            🔓 Simular Enlace Correo
-          </button>
-        )}
+
 
         {/* Info de usuario y Cierre de Sesión */}
         <div style={{ 
@@ -419,7 +459,7 @@ function App() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <button
-                onClick={() => setJuntaConfirmada(false)}
+                onClick={() => { setSolicitudAEditar(null); setJuntaConfirmada(false); }}
                 style={{
                   alignSelf: 'flex-start',
                   maxWidth: '600px',
@@ -444,6 +484,7 @@ function App() {
                 onEnviar={agregarSolicitud} 
                 juntaConfig={juntaConfig} 
                 userSession={session} 
+                solicitudAEditar={solicitudAEditar}
               />
             </div>
           )
@@ -453,16 +494,22 @@ function App() {
           <MisSolicitudes 
             solicitudes={solicitudesFiltradas} 
             onVerDetalle={(sol) => { setSolicitudActivaToken(sol); setVista('token-view'); }} 
-            onNuevaSolicitud={() => setVista('vecino')} 
+            onNuevaSolicitud={() => { setSolicitudAEditar(null); setVista('vecino'); }} 
+            onEditarSolicitud={(sol) => {
+              setSolicitudAEditar(sol);
+              setVista('vecino');
+              setJuntaConfirmada(true); // Saltarse la selección y mostrar directamente el formulario
+            }}
           />
         )}
 
         {vista === 'junta' && (
           <PanelAdmin
             key={resetKey}
-            listaSolicitudes={solicitudes}
+            listaSolicitudes={solicitudesFiltradas}
             onActualizarEstado={actualizarEstadoSolicitud}
             onSimularEmail={simularClicEnlaceCorreo}
+            juntas={juntas}
           />
         )}
 
@@ -470,14 +517,12 @@ function App() {
           <ConfiguracionJunta
             configActual={juntaConfig}
             onGuardarConfig={handleGuardarConfiguracion}
+            onConfigCompleta={() => { setVista('junta'); setDebeCargar(true); }}
           />
         )}
 
         {vista === 'token-view' && solicitudActivaToken && (
           <div style={{ padding: '10px' }}>
-            <div style={{ maxWidth: '800px', margin: '0 auto', background: '#fef3c7', border: '1px solid #fde68a', padding: '16px', borderRadius: '12px', marginBottom: '20px', fontSize: '14px', color: '#78350f', fontWeight: '500' }}>
-              <strong>Seguridad Token Link Activa:</strong> Acceso seguro concedido al residente. El documento inferior se adaptará estructuralmente según los parámetros de <strong>{juntaConfig.nombreJunta}</strong>.
-            </div>
             <DetalleRevision
               solicitud={solicitudActivaToken}
               soloLecturaVecino={true}
@@ -485,7 +530,7 @@ function App() {
                 if (session.role === 'vecino') setVista('mis-solicitudes');
                 else setVista('junta');
               }}
-              juntaConfig={juntaConfig}
+              juntaConfig={juntas[solicitudActivaToken.idJunta || 'jjvv19']}
             />
           </div>
         )}

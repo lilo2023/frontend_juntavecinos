@@ -1,4 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { juntasDeVecinosNunoa } from '../vecino/juntasData';
+
+// Haversine formula to calculate distance in km between two coordinates
+function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Radio de la Tierra en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distancia en km
+}
 
 export default function DetalleRevision({ solicitud, onActualizarEstado, onVolver, soloLecturaVecino = false, juntaConfig }) {
     const [docActivo, setDocActivo] = useState('cedula');
@@ -6,23 +20,17 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
     const [mostrarBloqueRechazo, setMostrarBloqueRechazo] = useState(false);
     const [imagenZoom, setImagenZoom] = useState(null);
 
+    // Estados para Verificación Territorial en vivo
+    const [geoLoading, setGeoLoading] = useState(false);
+    const [geoResult, setGeoResult] = useState(null);
+    const [geoError, setGeoError] = useState(null);
+
+
     const [esperaTransicion, setEsperaTransicion] = useState(false);
 
     // 1. Nuevo estado local para asegurar el renderizado inmediato del PDF
     const [estadoLocal, setEstadoLocal] = useState(solicitud?.estado || 'Pendiente');
     const [yaAprobadoLocal, setYaAprobadoLocal] = useState(false);
-
-    // Sincronizar si el padre cambia de vecino
-    useEffect(() => {
-        setEstadoLocal(solicitud?.estado || 'Pendiente');
-    }, [solicitud]);
-
-    // 🔴 LOGS DE CICLO DE VIDA (Mira tu consola del navegador cuando ocurra el parpadeo)
-    console.log("=============================================");
-    console.log("🔄 DetalleRevision RENDERIZADO");
-    console.log("🆔 ID Solicitud recibido:", solicitud?.id || solicitud?._id);
-    console.log("📊 Estado de la solicitud recibido:", solicitud?.estado);
-    console.log("=============================================");
 
     // Fallback seguro en caso de que por alguna razón no venga juntaConfig
     const config = juntaConfig || {
@@ -32,6 +40,90 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
         pieFirmaTexto: 'LA DIRECTIVA',
         comuna: 'Ñuñoa'
     };
+
+    // Sincronizar si el padre cambia de vecino
+    useEffect(() => {
+        setEstadoLocal(solicitud?.estado || 'Pendiente');
+        // Resetear la verificación si cambia de solicitud
+        setGeoResult(null);
+        setGeoError(null);
+    }, [solicitud]);
+
+    // Geocodificación territorial en vivo
+    useEffect(() => {
+        if (docActivo !== 'verificacion') return;
+        if (geoResult) return; // ya cargó
+
+        const validarDireccionTerritorial = async () => {
+            setGeoLoading(true);
+            setGeoError(null);
+
+            try {
+                // Limpiar dirección e incluir comuna para Nominatim
+                let comuna = config?.comuna || 'Ñuñoa';
+                let query = `${solicitud.direccion}, ${comuna}, Chile`;
+                
+                console.log("Validando dirección territorial:", query);
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lng = parseFloat(data[0].lon);
+
+                    // Buscar la JVV más cercana
+                    let minimaDistancia = Infinity;
+                    let juntaMasCercana = null;
+
+                    juntasDeVecinosNunoa.forEach((jvv) => {
+                        const d = calcularDistanciaHaversine(lat, lng, jvv.lat, jvv.lng);
+                        if (d < minimaDistancia) {
+                            minimaDistancia = d;
+                            juntaMasCercana = jvv;
+                        }
+                    });
+
+                    // Calcular la distancia a la junta del operador actual
+                    // La junta actual tiene un id en el config. (ej: config.id o idJunta de session)
+                    const idJuntaOperador = juntaConfig?.id || solicitud?.idJunta || 'jjvv19';
+                    const juntaOperadorData = juntasDeVecinosNunoa.find(j => j.id === idJuntaOperador) || juntasDeVecinosNunoa.find(j => j.id === 'jjvv19');
+                    let distanciaAOperador = null;
+
+                    if (juntaOperadorData) {
+                        distanciaAOperador = calcularDistanciaHaversine(lat, lng, juntaOperadorData.lat, juntaOperadorData.lng);
+                    }
+
+                    setGeoResult({
+                        lat,
+                        lng,
+                        juntaSugerida: juntaMasCercana,
+                        distanciaSugerida: minimaDistancia,
+                        distanciaAOperador,
+                        juntaOperadorData,
+                        displayName: data[0].display_name
+                    });
+                } else {
+                    setGeoError('No se pudo encontrar las coordenadas geográficas para la dirección provista. Valídela manualmente.');
+                }
+            } catch (err) {
+                console.error("Error en geocoding de operador:", err);
+                setGeoError('Error de red al consultar el mapa de validación territorial. Inténtelo más tarde.');
+            } finally {
+                setGeoLoading(false);
+            }
+        };
+
+        validarDireccionTerritorial();
+    }, [docActivo, solicitud, config, juntaConfig]);
+
+    // 🔴 LOGS DE CICLO DE VIDA (Mira tu consola del navegador cuando ocurra el parpadeo)
+    console.log("=============================================");
+    console.log("🔄 DetalleRevision RENDERIZADO");
+    console.log("🆔 ID Solicitud recibido:", solicitud?.id || solicitud?._id);
+    console.log("📊 Estado de la solicitud recibido:", solicitud?.estado);
+    console.log("=============================================");
+
+
 
     const imagenesSimuladas = {
         cedula: solicitud?.urls?.cedula || 'https://via.placeholder.com/500x350?text=FOTO+CEDULA',
@@ -143,20 +235,39 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
 
     console.log("--- ENVIANDO AL VISOR ---", solicitud);
 
-    // --- RENDEREADO VISTA 2: CASO RECHAZADO EN VISTA EXCLUSIVA DEL VECINO ---
-    if (soloLecturaVecino && solicitud?.estado === 'Rechazado') {
+    // --- RENDEREADO VISTA 2: CASO RECHAZADO (Muestra la ficha del vecino a ambos, y botón de volver al operador) ---
+    if (solicitud?.estado === 'Rechazado' || estadoLocal === 'Rechazado') {
         return (
-            <div style={{ maxWidth: '600px', margin: '30px auto', padding: '30px', backgroundColor: '#fff', borderTop: '5px solid #dc3545', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', fontFamily: 'Arial' }}>
-                <h2 style={{ color: '#c62828' }}>❌ Solicitud No Aprobada</h2>
-                <p>Estimado/a <strong>{solicitud.nombre}</strong>,</p>
-                <p>Lamentamos informarle que su requerimiento de certificación de residencia administrado por <strong>{config.nombreJunta}</strong> ha sido rechazado tras la revisión de los documentos adjuntos.</p>
+            <div style={{ maxWidth: '600px', margin: '30px auto', padding: '30px', backgroundColor: '#fff', borderTop: '5px solid #dc3545', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', fontFamily: "'Outfit', Arial, sans-serif" }}>
+                {!soloLecturaVecino && (
+                    <button
+                        onClick={onVolver}
+                        style={{
+                            background: '#475569', color: 'white', border: 'none',
+                            padding: '8px 16px', borderRadius: '6px', cursor: 'pointer',
+                            fontWeight: '600', fontSize: '13px', marginBottom: '20px',
+                            display: 'flex', alignItems: 'center', gap: '6px'
+                        }}
+                    >
+                        ← Volver a la Bandeja
+                    </button>
+                )}
+                <h2 style={{ color: '#c62828', fontSize: '20px', fontWeight: '700', marginTop: 0 }}>❌ Solicitud No Aprobada</h2>
+                <p style={{ fontSize: '14px', color: '#1e293b' }}>Estimado/a <strong>{solicitud.nombre}</strong>,</p>
+                <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.5' }}>
+                    Lamentamos informarle que su requerimiento de certificación de residencia administrado por <strong>{config.nombreJunta}</strong> ha sido rechazado tras la revisión de los documentos adjuntos.
+                </p>
 
-                <div style={{ backgroundColor: '#fff5f5', padding: '15px', border: '1px solid #feb2b2', borderRadius: '5px', margin: '20px 0', color: '#9b2c2c' }}>
+                <div style={{ backgroundColor: '#fff5f5', padding: '15px', border: '1px solid #feb2b2', borderRadius: '8px', margin: '20px 0', color: '#9b2c2c', fontSize: '14px' }}>
                     <strong>Motivo oficial indicado por el Operador:</strong><br />
-                    <p style={{ marginTop: '5px', fontStyle: 'italic', fontSize: '15px' }}>"{solicitud.motivoRechazo || 'Documentación inconsistente con el domicilio declarado.'}"</p>
+                    <p style={{ marginTop: '5px', fontStyle: 'italic', fontSize: '14px', color: '#7f1d1d', margin: 0 }}>
+                        "{solicitud.motivoRechazo || 'Documentación inconsistente con el domicilio declarado.'}"
+                    </p>
                 </div>
 
-                <p style={{ fontSize: '14px', color: '#555' }}><strong>¿Cómo solucionar esto?</strong> No necesita pagar de nuevo. Modifique su archivo de respaldo según la instrucción indicada arriba y cargue nuevamente el trámite.</p>
+                <p style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.5' }}>
+                    <strong>¿Cómo solucionar esto?</strong> No necesita pagar de nuevo. Modifique su archivo de respaldo según la instrucción indicada arriba y cargue nuevamente el trámite.
+                </p>
             </div>
         );
     }
@@ -189,91 +300,247 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
         <div style={{ display: 'flex', height: '85vh', fontFamily: 'Arial', backgroundColor: '#fff' }}>
 
             {/* EXAMINADOR IZQUIERDO */}
-            <div style={{ flex: 1, backgroundColor: '#f1f2f6', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ flex: 1, backgroundColor: '#f1f2f6', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px', position: 'relative' }}>
                 <h3 style={{ margin: '0 0 5px 0', color: '#2c3e50', fontSize: '16px' }}>Evidencias a Validar</h3>
 
-                {/* Las 3 Pestañas */}
-                <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                        type="button"
-                        onClick={() => setDocActivo('cedula')}
-                        style={{ padding: '10px', flex: 1, background: docActivo === 'cedula' ? '#007bff' : '#fff', color: docActivo === 'cedula' ? '#fff' : '#000', border: '1px solid #ccc', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
-                    >
-                        1. Cédula
-                    </button>
+                {/* Las 3 Pestañas (se ocultan si hay zoom activo) */}
+                {!imagenZoom && (
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                            type="button"
+                            onClick={() => setDocActivo('cedula')}
+                            style={{ padding: '10px', flex: 1, background: docActivo === 'cedula' ? '#007bff' : '#fff', color: docActivo === 'cedula' ? '#fff' : '#000', border: '1px solid #ccc', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+                        >
+                            1. Cédula
+                        </button>
 
-                    <button
-                        type="button"
-                        onClick={() => setDocActivo('domicilio')}
-                        style={{ padding: '10px', flex: 1, background: docActivo === 'domicilio' ? '#007bff' : '#fff', color: docActivo === 'domicilio' ? '#fff' : '#000', border: '1px solid #ccc', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
-                    >
-                        2. {solicitud?.tipoDocDomicilio || 'Doc. Domicilio'}
-                    </button>
+                        <button
+                            type="button"
+                            onClick={() => setDocActivo('domicilio')}
+                            style={{ padding: '10px', flex: 1, background: docActivo === 'domicilio' ? '#007bff' : '#fff', color: docActivo === 'domicilio' ? '#fff' : '#000', border: '1px solid #ccc', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+                        >
+                            2. {solicitud?.tipoDocDomicilio || 'Doc. Domicilio'}
+                        </button>
 
-                    <button
-                        type="button"
-                        onClick={() => setDocActivo('pago')}
-                        style={{ padding: '10px', flex: 1, background: docActivo === 'pago' ? '#007bff' : '#fff', color: docActivo === 'pago' ? '#fff' : '#000', border: '1px solid #ccc', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
-                    >
-                        3. Comprobante Pago
-                    </button>
-                </div>
+                        <button
+                            type="button"
+                            onClick={() => setDocActivo('pago')}
+                            style={{ padding: '10px', flex: 1, background: docActivo === 'pago' ? '#007bff' : '#fff', color: docActivo === 'pago' ? '#fff' : '#000', border: '1px solid #ccc', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+                        >
+                            3. Comprobante Pago
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setDocActivo('verificacion')}
+                            style={{ padding: '10px', flex: 1, background: docActivo === 'verificacion' ? '#007bff' : '#fff', color: docActivo === 'verificacion' ? '#fff' : '#000', border: '1px solid #ccc', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+                        >
+                            🗺️ 4. Verificación de JJVV
+                        </button>
+                    </div>
+                )}
 
                 {/* Visor de Contenido Inteligente */}
-                <div style={{ flex: 1, background: '#fff', border: '1px solid #ccc', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', borderRadius: '5px', overflow: 'hidden', padding: '15px', minHeight: '350px', position: 'relative' }}>
-                    <span style={{ fontSize: '13px', color: '#666', marginBottom: '10px', display: 'block', zIndex: 10 }}>
-                        💡 <em>Haz clic sobre la imagen para agrandarla y ver los detalles</em>
-                    </span>
+                <div style={{ flex: 1, background: '#fff', border: '1px solid #ccc', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', borderRadius: '5px', overflow: 'auto', padding: '15px', minHeight: '350px', position: 'relative' }}>
 
-                    {/* PESTAÑA 1: CÉDULA */}
-                    {docActivo === 'cedula' && (
-                        <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
-                            <p style={{ fontWeight: 'bold', color: '#64748b', marginBottom: '8px', fontSize: '13px' }}>Cédula de Identidad Cargada:</p>
-                            {solicitud?.urls?.cedula || solicitud?.urlCedula ? (
-                                <img
-                                    src={solicitud?.urls?.cedula || solicitud?.urlCedula}
-                                    alt="Cédula de Identidad"
-                                    onClick={() => setImagenZoom(solicitud?.urls?.cedula || solicitud?.urlCedula)}
-                                    style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '280px', display: 'block', objectFit: 'contain', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'zoom-in' }}
-                                />
-                            ) : (
-                                <p style={{ color: '#dc3545', fontSize: '13px' }}>⚠️ No se encontró el enlace de la cédula.</p>
-                            )}
+                    {/* MODO ZOOM: reemplaza las tabs con la imagen ampliada */}
+                    {imagenZoom ? (
+                        <div 
+                            onClick={() => setImagenZoom(null)}
+                            style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', cursor: 'zoom-out' }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }} onClick={(e) => e.stopPropagation()}>
+                                <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e40af' }}>🔍 Vista ampliada — Panel de datos visible a la derecha</span>
+                                <button
+                                    onClick={() => setImagenZoom(null)}
+                                    style={{ background: '#ef4444', color: 'white', border: 'none', padding: '5px 14px', fontSize: '12px', fontWeight: '700', borderRadius: '6px', cursor: 'pointer' }}
+                                >
+                                    ✕ Cerrar zoom
+                                </button>
+                            </div>
+                            <img
+                                src={imagenZoom}
+                                alt="Evidencia ampliada"
+                                style={{ width: '100%', height: '100%', maxWidth: '100%', maxHeight: 'calc(100% - 50px)', objectFit: 'contain', borderRadius: '4px', boxShadow: '0 2px 12px rgba(0,0,0,0.15)' }}
+                            />
                         </div>
-                    )}
+                    ) : (
+                        <>
+                            {docActivo !== 'verificacion' && (
+                                <span style={{ fontSize: '13px', color: '#666', marginBottom: '10px', display: 'block', zIndex: 10 }}>
+                                    💡 <em>Haz clic sobre la imagen para agrandarla y ver los detalles</em>
+                                </span>
+                            )}
 
-                    {/* PESTAÑA 2: DOMICILIO */}
-                    {docActivo === 'domicilio' && (
-                        <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
-                            <p style={{ fontWeight: 'bold', color: '#64748b', marginBottom: '8px', fontSize: '13px' }}>Evidencia de Domicilio Subida ({solicitud?.tipoDocDomicilio || 'Doc'}):</p>
-                            {solicitud?.urls?.domicilio || solicitud?.urlDomicilio ? (
-                                <img
-                                    src={solicitud?.urls?.domicilio || solicitud?.urlDomicilio}
-                                    alt="Documento Domicilio"
-                                    onClick={() => setImagenZoom(solicitud?.urls?.domicilio || solicitud?.urlDomicilio)}
-                                    style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '280px', display: 'block', objectFit: 'contain', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'zoom-in' }}
-                                />
-                            ) : (
-                                <p style={{ color: '#dc3545', fontSize: '13px' }}>⚠️ No se encontró el enlace del documento de domicilio.</p>
+                            {/* PESTAÑA 1: CÉDULA */}
+                            {docActivo === 'cedula' && (
+                                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
+                                    <p style={{ fontWeight: 'bold', color: '#64748b', marginBottom: '8px', fontSize: '13px' }}>Cédula de Identidad Cargada:</p>
+                                    {solicitud?.urls?.cedula || solicitud?.urlCedula ? (
+                                        <img
+                                            src={solicitud?.urls?.cedula || solicitud?.urlCedula}
+                                            alt="Cédula de Identidad"
+                                            onClick={() => setImagenZoom(solicitud?.urls?.cedula || solicitud?.urlCedula)}
+                                            style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '280px', display: 'block', objectFit: 'contain', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'zoom-in' }}
+                                        />
+                                    ) : (
+                                        <p style={{ color: '#dc3545', fontSize: '13px' }}>⚠️ No se encontró el enlace de la cédula.</p>
+                                    )}
+                                </div>
                             )}
-                        </div>
-                    )}
 
-                    {/* PESTAÑA 3: PAGO */}
-                    {docActivo === 'pago' && (
-                        <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
-                            <p style={{ fontWeight: 'bold', color: '#64748b', marginBottom: '10px', fontSize: '13px' }}>Comprobante de Transferencia Adjunto:</p>
-                            {solicitud?.urls?.pago || solicitud?.urls?.comprobantePago || solicitud?.urlPago ? (
-                                <img
-                                    src={solicitud?.urls?.pago || solicitud?.urls?.comprobantePago || solicitud?.urlPago}
-                                    alt="Comprobante de Pago"
-                                    onClick={() => setImagenZoom(solicitud?.urls?.pago || solicitud?.urls?.comprobantePago || solicitud?.urlPago)}
-                                    style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '280px', display: 'block', objectFit: 'contain', borderRadius: '4px', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'zoom-in' }}
-                                />
-                            ) : (
-                                <p style={{ color: '#dc3545', fontSize: '13px' }}>⚠️ No se encontró el enlace del comprobante de pago.</p>
+                            {/* PESTAÑA 2: DOMICILIO */}
+                            {docActivo === 'domicilio' && (
+                                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
+                                    <p style={{ fontWeight: 'bold', color: '#64748b', marginBottom: '8px', fontSize: '13px' }}>Evidencia de Domicilio Subida ({solicitud?.tipoDocDomicilio || 'Doc'}):</p>
+                                    {solicitud?.urls?.domicilio || solicitud?.urlDomicilio ? (
+                                        <img
+                                            src={solicitud?.urls?.domicilio || solicitud?.urlDomicilio}
+                                            alt="Documento Domicilio"
+                                            onClick={() => setImagenZoom(solicitud?.urls?.domicilio || solicitud?.urlDomicilio)}
+                                            style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '280px', display: 'block', objectFit: 'contain', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'zoom-in' }}
+                                        />
+                                    ) : (
+                                        <p style={{ color: '#dc3545', fontSize: '13px' }}>⚠️ No se encontró el enlace del documento de domicilio.</p>
+                                    )}
+                                </div>
                             )}
-                        </div>
+
+                            {/* PESTAÑA 3: PAGO */}
+                            {docActivo === 'pago' && (
+                                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
+                                    <p style={{ fontWeight: 'bold', color: '#64748b', marginBottom: '10px', fontSize: '13px' }}>Comprobante de Transferencia Adjunto:</p>
+                                    {solicitud?.urls?.pago || solicitud?.urls?.comprobantePago || solicitud?.urlPago ? (
+                                        <img
+                                            src={solicitud?.urls?.pago || solicitud?.urls?.comprobantePago || solicitud?.urlPago}
+                                            alt="Comprobante de Pago"
+                                            onClick={() => setImagenZoom(solicitud?.urls?.pago || solicitud?.urls?.comprobantePago || solicitud?.urlPago)}
+                                            style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '280px', display: 'block', objectFit: 'contain', borderRadius: '4px', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'zoom-in' }}
+                                        />
+                                    ) : (
+                                        <p style={{ color: '#dc3545', fontSize: '13px' }}>⚠️ No se encontró el enlace del comprobante de pago.</p>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* PESTAÑA 4: VERIFICACIÓN TERRITORIAL EN VIVO */}
+                            {docActivo === 'verificacion' && (
+                                <div style={{ width: '100%', padding: '10px', display: 'flex', flexDirection: 'column', gap: '15px', fontFamily: "'Outfit', sans-serif" }}>
+                                    <h4 style={{ margin: 0, color: '#1e3a8a', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px', fontSize: '15px' }}>
+                                        🗺️ Análisis Geográfico y Límite Territorial
+                                    </h4>
+
+                                    <div style={{ padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px' }}>
+                                        <span style={{ color: '#64748b', fontWeight: 'bold', display: 'block', marginBottom: '3px' }}>Dirección de la Solicitud:</span>
+                                        <strong style={{ color: '#0f172a', fontSize: '14px' }}>
+                                            {solicitud.direccion?.toLowerCase().includes((config.comuna || 'ñuñoa').toLowerCase())
+                                                ? solicitud.direccion
+                                                : `${solicitud.direccion}, ${config.comuna || 'Ñuñoa'}`}
+                                        </strong>
+                                    </div>
+
+                                    {geoLoading && (
+                                        <div style={{ textAlign: 'center', padding: '30px 0' }}>
+                                            <div style={{ display: 'inline-block', width: '30px', height: '30px', border: '3px solid rgba(37,99,235,0.2)', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                                            <p style={{ color: '#64748b', fontSize: '13px', marginTop: '10px' }}>Geolocalizando dirección y analizando cobertura...</p>
+                                            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                                        </div>
+                                    )}
+
+                                    {geoError && (
+                                        <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '15px', borderRadius: '8px', fontSize: '13px' }}>
+                                            <strong>⚠️ Estado de Validación:</strong> {geoError}
+                                        </div>
+                                    )}
+
+                                    {geoResult && (
+                                        <>
+                                            {/* Coincidencia y semáforo */}
+                                            {(() => {
+                                                const esMismaJunta = geoResult.juntaSugerida.id === (juntaConfig?.id || solicitud?.idJunta || 'jjvv19');
+                                                const esTolerable = geoResult.distanciaAOperador && geoResult.distanciaAOperador <= 1.5;
+
+                                                let colorBg = '#fee2e2';
+                                                let colorBorder = '#fca5a5';
+                                                let colorText = '#991b1b';
+                                                let titulo = '❌ Fuera de Jurisdicción (No Corresponde)';
+                                                let desc = `La dirección ingresada se encuentra geográficamente muy alejada de su jurisdicción (${geoResult.distanciaAOperador ? geoResult.distanciaAOperador.toFixed(2) : '?'} km).`;
+
+                                                if (esMismaJunta) {
+                                                    colorBg = '#dcfce7';
+                                                    colorBorder = '#86efac';
+                                                    colorText = '#166534';
+                                                    titulo = '✅ Dirección Válida (Corresponde a su JJVV)';
+                                                    desc = 'La dirección ingresada se encuentra en la zona oficial de cobertura asignada a su Junta de Vecinos.';
+                                                } else if (esTolerable) {
+                                                    colorBg = '#fef3c7';
+                                                    colorBorder = '#fde68a';
+                                                    colorText = '#92400e';
+                                                    titulo = '⚠️ Zona de Cobertura Cercana (Tolerancia)';
+                                                    desc = `La dirección ingresada está asignada a otra JVV vecina, pero a sólo ${geoResult.distanciaAOperador ? geoResult.distanciaAOperador.toFixed(2) : '?'} km de su sede.`;
+                                                }
+
+                                                return (
+                                                    <div style={{ backgroundColor: colorBg, border: `1px solid ${colorBorder}`, color: colorText, padding: '16px', borderRadius: '10px', fontSize: '13px' }}>
+                                                        <strong style={{ fontSize: '14px', display: 'block', marginBottom: '4px' }}>{titulo}</strong>
+                                                        <span>{desc}</span>
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            {/* Detalles y comparaciones */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '12px' }}>
+                                                <div style={{ padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#fff' }}>
+                                                    <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>📍 Junta Sugerida por GPS:</span>
+                                                    <strong style={{ fontSize: '13px', color: '#1e293b' }}>{geoResult.juntaSugerida.name}</strong>
+                                                    <div style={{ color: '#64748b', marginTop: '3px' }}>Sede a {geoResult.distanciaSugerida.toFixed(2)} km</div>
+                                                </div>
+
+                                                <div style={{ padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#fff' }}>
+                                                    <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>🏛️ Su Junta (Operador):</span>
+                                                    <strong style={{ fontSize: '13px', color: '#1e293b' }}>{geoResult.juntaOperadorData ? geoResult.juntaOperadorData.name : config.nombreJunta}</strong>
+                                                    <div style={{ color: '#64748b', marginTop: '3px' }}>Sede a {geoResult.distanciaAOperador ? geoResult.distanciaAOperador.toFixed(2) : '?'} km de la dirección</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Observación sugerida */}
+                                            {(() => {
+                                                const esMismaJunta = geoResult.juntaSugerida.id === (juntaConfig?.id || solicitud?.idJunta || 'jjvv19');
+                                                const colorBg = esMismaJunta ? '#eff6ff' : '#fff7ed';
+                                                const colorBorder = esMismaJunta ? '#bfdbfe' : '#ffedd5';
+                                                const colorText = esMismaJunta ? '#1e40af' : '#c2410c';
+                                                const observacion = esMismaJunta
+                                                    ? 'Coincide la Junta de Vecinos seleccionada. Se valida la elección de la junta de vecinos.'
+                                                    : 'No coincide la junta de vecinos indicada por el vecino. Se sugiere rechazar por este aspecto.';
+
+                                                return (
+                                                    <div style={{ 
+                                                        backgroundColor: colorBg, 
+                                                        borderLeft: `5px solid ${esMismaJunta ? '#3b82f6' : '#ea580c'}`,
+                                                        borderTop: `1px solid ${colorBorder}`,
+                                                        borderBottom: `1px solid ${colorBorder}`,
+                                                        borderRight: `1px solid ${colorBorder}`,
+                                                        color: colorText, 
+                                                        padding: '14px', 
+                                                        borderRadius: '8px', 
+                                                        fontSize: '13px',
+                                                        lineHeight: '1.5',
+                                                        fontWeight: '500'
+                                                    }}>
+                                                        <strong style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>📝 Observación para el Operador:</strong>
+                                                        {observacion}
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic', marginTop: '-5px' }}>
+                                                * Geocodificación obtenida en base a la API pública de OpenStreetMap y base de datos territorial de la Ilustre Municipalidad de Ñuñoa.
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>
@@ -385,32 +652,7 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                 )}
             </div>
 
-            {/* MODAL INTERACTIVO DE ZOOM */}
-            {imagenZoom && (
-                <div
-                    onClick={() => setImagenZoom(null)}
-                    style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px', boxSizing: 'border-box', cursor: 'zoom-out' }}
-                >
-                    <button
-                        onClick={() => setImagenZoom(null)}
-                        style={{ position: 'absolute', top: '20px', right: '30px', background: '#ff4d4d', color: 'white', border: 'none', padding: '8px 16px', fontSize: '14px', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer', boxShadow: '0 2px 10px rgba(0,0,0,0.3)' }}
-                    >
-                        ✕ CERRAR ZOOM
-                    </button>
 
-                    <div
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ width: '100%', maxWidth: '500px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', borderRadius: '8px', padding: '20px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', overflowY: 'auto' }}
-                    >
-                        <img
-                            src={imagenZoom}
-                            alt="Evidencia ampliada"
-                            onClick={() => setImagenZoom(null)}
-                            style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '75vh', objectFit: 'contain', cursor: 'zoom-out' }}
-                        />
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

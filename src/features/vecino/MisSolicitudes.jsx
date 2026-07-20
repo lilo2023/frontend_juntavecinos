@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function MisSolicitudes({ solicitudes, onVerDetalle, onNuevaSolicitud }) {
+export default function MisSolicitudes({ solicitudes, onVerDetalle, onNuevaSolicitud, onEditarSolicitud }) {
     return (
         <div style={{
             maxWidth: '900px',
@@ -139,22 +139,39 @@ export default function MisSolicitudes({ solicitudes, onVerDetalle, onNuevaSolic
                                                 </button>
                                             )}
                                             {isRechazada && (
-                                                <button
-                                                    onClick={() => onVerDetalle(sol)}
-                                                    style={{
-                                                        backgroundColor: '#ef4444',
-                                                        color: '#ffffff',
-                                                        border: 'none',
-                                                        borderRadius: '8px',
-                                                        padding: '6px 12px',
-                                                        fontSize: '13px',
-                                                        fontWeight: '600',
-                                                        cursor: 'pointer',
-                                                        boxShadow: '0 2px 6px rgba(239, 68, 68, 0.15)'
-                                                    }}
-                                                >
-                                                    ❌ Ver Motivo
-                                                </button>
+                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                    <button
+                                                        onClick={() => onVerDetalle(sol)}
+                                                        style={{
+                                                            backgroundColor: '#64748b',
+                                                            color: '#ffffff',
+                                                            border: 'none',
+                                                            borderRadius: '8px',
+                                                            padding: '6px 12px',
+                                                            fontSize: '13px',
+                                                            fontWeight: '600',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        ❌ Ver Motivo
+                                                    </button>
+                                                    <button
+                                                        onClick={() => onEditarSolicitud(sol)}
+                                                        style={{
+                                                            backgroundColor: '#d97706',
+                                                            color: '#ffffff',
+                                                            border: 'none',
+                                                            borderRadius: '8px',
+                                                            padding: '6px 12px',
+                                                            fontSize: '13px',
+                                                            fontWeight: '600',
+                                                            cursor: 'pointer',
+                                                            boxShadow: '0 2px 6px rgba(217, 119, 6, 0.2)'
+                                                        }}
+                                                    >
+                                                        ✏️ Corregir
+                                                    </button>
+                                                </div>
                                             )}
                                             {!isAprobada && !isRechazada && (
                                                 <span style={{ fontSize: '13px', color: '#94a3b8', fontStyle: 'italic' }}>

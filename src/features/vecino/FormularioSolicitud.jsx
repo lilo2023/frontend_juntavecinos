@@ -43,6 +43,12 @@ const validarRutChileno = (rutCompleto) => {
     return dv === dvEsperado;
 };
 
+const getApiUrl = () => {
+    return window.location.hostname === 'localhost'
+        ? 'http://localhost:5000/api/residentes'
+        : 'https://backend-junta-vecinos.onrender.com/api/residentes';
+};
+
 // ==========================================
 // COMPONENTE PRINCIPAL (PORTAL DEL VECINO)
 // ==========================================
@@ -89,6 +95,35 @@ export default function FormularioSolicitud(props) {
             montoPago: infoJunta.valorCertificado || '0'
         }));
     }, [infoJunta.comuna, infoJunta.valorCertificado]);
+
+    // Pre-cargar datos si viene una solicitud a editar
+    useEffect(() => {
+        if (props.solicitudAEditar) {
+            let direccionLimpia = props.solicitudAEditar.direccion || '';
+            // Limpiar comuna del string para evitar duplicación
+            direccionLimpia = direccionLimpia.replace(/,\s*ñuñoa/gi, '').trim();
+
+            setFormData({
+                nombre: props.solicitudAEditar.nombre || '',
+                rut: props.solicitudAEditar.rut || '',
+                email: props.solicitudAEditar.email || '',
+                direccion: direccionLimpia,
+                comuna: props.solicitudAEditar.comuna || infoJunta.comuna || 'Ñuñoa',
+                calidadResidente: props.solicitudAEditar.calidadResidente || 'Propietario',
+                destino: props.solicitudAEditar.destino || '',
+                montoPago: props.solicitudAEditar.montoPago || infoJunta.valorCertificado || '0',
+                tipoDocDomicilio: props.solicitudAEditar.tipoDocDomicilio || 'Boleta de Servicio'
+            });
+            setRutError(false);
+
+            // Cargar URLs existentes en urlsTemporales para la previsualización/comprobación
+            setUrlsTemporales({
+                cedula: props.solicitudAEditar.urls?.cedula || '',
+                domicilio: props.solicitudAEditar.urls?.domicilio || '',
+                comprobantePago: props.solicitudAEditar.urls?.pago || ''
+            });
+        }
+    }, [props.solicitudAEditar, infoJunta]);
 
     const cargarDatosDemo = () => {
         setFormData({
@@ -172,133 +207,143 @@ export default function FormularioSolicitud(props) {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (rutError || !formData.rut) {
-            alert('Por favor, ingrese un RUT válido antes de enviar.');
-            return;
-        }
+        e.preventDefault();
+        if (rutError || !formData.rut) {
+            alert('Por favor, ingrese un RUT válido antes de enviar.');
+            return;
+        }
 
-        // Validación preventiva: verificar que se hayan adjuntado los documentos requeridos
-        if (!archivosRaw.cedula || !archivosRaw.domicilio || !archivosRaw.comprobantePago) {
-            alert('Por favor, adjunte los tres documentos requeridos (Cédula, Acreditación y Comprobante).');
-            return;
-        }
+        const esEdicion = !!props.solicitudAEditar;
+        if (!esEdicion && (!archivosRaw.cedula || !archivosRaw.domicilio || !archivosRaw.comprobantePago)) {
+            alert('Por favor, adjunte los tres documentos requeridos (Cédula, Acreditación y Comprobante).');
+            return;
+        }
 
-        // ==========================================
-        // PROCESAMIENTO DE IMÁGENES ASÍNCRONAS (Cloudinary)
-        // ==========================================
-        setIsSubiendo(true); // Bloqueamos el botón y notificamos al vecino
+        // ==========================================
+        // PROCESAMIENTO DE IMÁGENES ASÍNCRONAS (Cloudinary)
+        // ==========================================
+        setIsSubiendo(true);
 
-        let cloudCedulaUrl = "";
-        let cloudDomicilioUrl = "";
-        let cloudPagoUrl = "";
+        let cloudCedulaUrl = "";
+        let cloudDomicilioUrl = "";
+        let cloudPagoUrl = "";
 
-        try {
-            // Disparamos la subida de los archivos reales guardados en archivosRaw
-            cloudCedulaUrl = await subirACloudinary(archivosRaw.cedula);
-            cloudDomicilioUrl = await subirACloudinary(archivosRaw.domicilio);
-            cloudPagoUrl = await subirACloudinary(archivosRaw.comprobantePago);
+        try {
+            if (archivosRaw.cedula) {
+                cloudCedulaUrl = await subirACloudinary(archivosRaw.cedula);
+            }
+            if (archivosRaw.domicilio) {
+                cloudDomicilioUrl = await subirACloudinary(archivosRaw.domicilio);
+            }
+            if (archivosRaw.comprobantePago) {
+                cloudPagoUrl = await subirACloudinary(archivosRaw.comprobantePago);
+            }
 
-            if (!cloudCedulaUrl || !cloudDomicilioUrl || !cloudPagoUrl) {
-                throw new Error("Una o más imágenes no pudieron procesarse en la nube.");
-            }
-        } catch (errorCloud) {
-            console.error(errorCloud);
-            alert("❌ Error al procesar y subir tus documentos de respaldo a Cloudinary. Inténtalo de nuevo.");
-            setIsSubiendo(false);
-            return;
-        }
+            if (!esEdicion && (!cloudCedulaUrl || !cloudDomicilioUrl || !cloudPagoUrl)) {
+                throw new Error("Una o más imágenes no pudieron procesarse en la nube.");
+            }
+        } catch (errorCloud) {
+            console.error(errorCloud);
+            alert("❌ Error al procesar y subir tus documentos de respaldo a Cloudinary. Inténtalo de nuevo.");
+            setIsSubiendo(false);
+            return;
+        }
 
-        // ==========================================
-        // LÓGICA DE PROCESAMIENTO DE DIRECCIÓN (Mapeo a Objeto)
-        // ==========================================
-        const partesDireccion = formData.direccion.split(',');
+        // ==========================================
+        // LÓGICA DE PROCESAMIENTO DE DIRECCIÓN (Mapeo a Objeto)
+        // ==========================================
+        const partesDireccion = formData.direccion.split(',');
 
-        const calleLimpia = partesDireccion[0] ? partesDireccion[0].replace(/(\d+)/g, '').trim() : 'No especificada';
-        const matchNumero = partesDireccion[0] ? partesDireccion[0].match(/\d+/) : null;
-        const numeroLimpio = matchNumero ? matchNumero[0] : 'S/N';
+        const calleLimpia = partesDireccion[0] ? partesDireccion[0].replace(/(\d+)/g, '').trim() : 'No especificada';
+        const matchNumero = partesDireccion[0] ? partesDireccion[0].match(/\d+/) : null;
+        const numeroLimpio = matchNumero ? matchNumero[0] : 'S/N';
 
-        const torreLimpia = partesDireccion[1] ? partesDireccion[1].replace(/torre/i, '').trim() : '';
-        const deptoLimpio = partesDireccion[2] ? partesDireccion[2].replace(/departamento|depto/i, '').trim() : '';
+        const torreLimpia = partesDireccion[1] ? partesDireccion[1].replace(/torre/i, '').trim() : '';
+        const deptoLimpio = partesDireccion[2] ? partesDireccion[2].replace(/departamento|depto/i, '').trim() : '';
 
-        // ==========================================
-        // ESTRUCTURA DEL OBJETO FINAL CON LINKS DE INTERNET
-        // ==========================================
-        const datosParaBackend = {
-            nombre: formData.nombre,
-            rut: formData.rut,
-            correo: formData.email, // Mapeado de 'email' a 'correo'
-            destino: formData.destino,
-            direccion: {
-                calle: calleLimpia,
-                numero: numeroLimpio,
-                torre: torreLimpia,
-                departamento: deptoLimpio,
-                comuna: formData.comuna || 'Ñuñoa'
-            },
-            tipoResidente: formData.calidadResidente === 'Familiar del propietario' ? 'Familiar' : formData.calidadResidente,
-            
-            // 📁 ENVIAMOS LAS URLS REALES GENERADAS POR CLOUDINARY EN EL FORMATO DEL MODELO
-            urls: {
-                cedula: cloudCedulaUrl,
-                domicilio: cloudDomicilioUrl,
-                pago: cloudPagoUrl
-            },
-            tipoDocDomicilio: formData.tipoDocDomicilio || 'Doc. Domicilio'
-        };
+        // ==========================================
+        // ESTRUCTURA DEL OBJETO FINAL CON LINKS DE INTERNET
+        // ==========================================
+        const datosParaBackend = {
+            nombre: formData.nombre,
+            rut: formData.rut,
+            correo: formData.email,
+            destino: formData.destino,
+            direccion: {
+                calle: calleLimpia,
+                numero: numeroLimpio,
+                torre: torreLimpia,
+                departamento: deptoLimpio,
+                comuna: formData.comuna || 'Ñuñoa'
+            },
+            tipoResidente: formData.calidadResidente === 'Familiar del propietario' ? 'Familiar' : formData.calidadResidente,
+            
+            urls: {
+                cedula: cloudCedulaUrl || (esEdicion ? props.solicitudAEditar.urls?.cedula : ''),
+                domicilio: cloudDomicilioUrl || (esEdicion ? props.solicitudAEditar.urls?.domicilio : ''),
+                pago: cloudPagoUrl || (esEdicion ? props.solicitudAEditar.urls?.pago : '')
+            },
+            tipoDocDomicilio: formData.tipoDocDomicilio || 'Doc. Domicilio',
+            ...(esEdicion && { estado: 'Pendiente', motivoRechazo: '' })
+        };
 
-        // ==========================================
-        // PETICIÓN HTTP POST AL BACKEND LOCAL (Puerto 5000)
-        // ==========================================
-        try {
-            const respuesta = await fetch('https://backend-junta-vecinos.onrender.com/api/residentes', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(datosParaBackend)
-            });
+        // ==========================================
+        // PETICIÓN HTTP POST/PATCH AL BACKEND
+        // ==========================================
+        try {
+            const urlApi = esEdicion
+                ? `${getApiUrl()}/${props.solicitudAEditar.id}`
+                : getApiUrl();
+            const metodoApi = esEdicion ? 'PATCH' : 'POST';
 
-            const resultado = await respuesta.json();
+            const respuesta = await fetch(urlApi, {
+                method: metodoApi,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(datosParaBackend)
+            });
 
-            if (resultado.ok) {
-                alert(`¡Solicitud enviada exitosamente!\nSu número correlativo asignado por sistema es: ${resultado.data.correlativoSolicitud}`);
+            const resultado = await respuesta.json();
 
-                if (typeof props.onEnviar === 'function') {
-                    // 🛠️ FIX AQUÍ: Forzamos a que el objeto enviado al panel tenga la estructura
-                    // plana exacta que los hooks y visualizadores del frontend esperan mapear.
+            if (resultado.ok) {
+                if (esEdicion) {
+                    alert(`¡Solicitud corregida y re-enviada con éxito!\nConservará su Folio asignado.`);
+                } else {
+                    alert(`¡Solicitud enviada exitosamente!\nSu número correlativo asignado por sistema es: ${resultado.data.correlativoSolicitud}`);
+                }
+
+                if (typeof props.onEnviar === 'function') {
                     const solicitudNormalizadaParaFrontend = {
                         ...resultado.data,
                         folio: resultado.data.correlativoSolicitud || `FOLIO-${resultado.data.id || '1003'}`,
                         nombre: formData.nombre,
                         rut: formData.rut,
                         email: formData.email,
-                        direccion: formData.direccion, // Mantenemos el string completo ("Avenida Grecia 3348...")
+                        direccion: formData.direccion,
                         urls: {
-                            cedula: cloudCedulaUrl || resultado.data?.urls?.cedula,
-                            domicilio: cloudDomicilioUrl || resultado.data?.urls?.domicilio,
-                            pago: cloudPagoUrl || resultado.data?.urls?.pago
+                            cedula: cloudCedulaUrl || resultado.data?.urls?.cedula || (esEdicion ? props.solicitudAEditar.urls?.cedula : ''),
+                            domicilio: cloudDomicilioUrl || resultado.data?.urls?.domicilio || (esEdicion ? props.solicitudAEditar.urls?.domicilio : ''),
+                            pago: cloudPagoUrl || resultado.data?.urls?.pago || (esEdicion ? props.solicitudAEditar.urls?.pago : '')
                         }
                     };
-                    props.onEnviar(solicitudNormalizadaParaFrontend);
-                }
+                    props.onEnviar(solicitudNormalizadaParaFrontend);
+                }
 
-                // Limpiamos el formulario y los contenedores de archivos binarios
-                setFormData({
-                    nombre: '', rut: '', email: '', direccion: '',
-                    comuna: infoJunta.comuna || 'Ñuñoa', calidadResidente: 'Propietario',
-                    destino: '', montoPago: infoJunta.valorCertificado || '0',
-                    tipoDocDomicilio: 'Boleta de Servicio'
-                });
-                setArchivosRaw({ cedula: null, domicilio: null, comprobantePago: null });
-                setUrlsTemporales({ cedula: '', domicilio: '', comprobantePago: '' });
-                setRutError(false);
-
-            } else {
-                alert(`⚠️ Atención: ${resultado.msg}`);
-            }
-
-        } catch (error) {
+                // Limpiamos el formulario y los contenedores de archivos binarios
+                setFormData({
+                    nombre: '', rut: '', email: '', direccion: '',
+                    comuna: infoJunta.comuna || 'Ñuñoa', calidadResidente: 'Propietario',
+                    destino: '', montoPago: infoJunta.valorCertificado || '0',
+                    tipoDocDomicilio: 'Boleta de Servicio'
+                });
+                setArchivosRaw({ cedula: null, domicilio: null, comprobantePago: null });
+                setUrlsTemporales({ cedula: '', domicilio: '', comprobantePago: '' });
+                setRutError(false);
+            } else {
+                alert(`⚠️ Atención: ${resultado.msg || 'Error al guardar los datos'}`);
+            }
+        } catch (error) {
             console.error("Error al conectar con la API:", error);
             alert("❌ No se pudo establecer conexión con el servidor de la Junta de Vecinos. Asegúrese de que el backend esté encendido.");
         } finally {
@@ -363,12 +408,23 @@ export default function FormularioSolicitud(props) {
                         </div>
                     </div>
 
-                    <label style={{ fontWeight: '500', fontSize: '14px' }}>Dirección de Residencia:</label>
-                    <input
-                        type="text" name="direccion" value={formData.direccion} onChange={handleInputChange}
-                        placeholder="Ej: Avenida Grecia 3348, Depto 1713" required disabled={isSubiendo}
-                        style={{ width: '100%', padding: '10px', margin: '5px 0 10px 0', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
-                    />
+                    <div style={{ display: 'flex', gap: '15px', marginBottom: '10px', width: '100%', marginTop: '5px' }}>
+                        <div style={{ flex: 3, display: 'flex', flexDirection: 'column' }}>
+                            <label style={{ fontWeight: '500', fontSize: '14px', marginBottom: '5px' }}>Dirección de Residencia (Calle y Número):</label>
+                            <input
+                                type="text" name="direccion" value={formData.direccion} onChange={handleInputChange}
+                                placeholder="Ej: Avenida Grecia 3348, Depto 1713" required disabled={isSubiendo}
+                                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                            />
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                            <label style={{ fontWeight: '500', fontSize: '14px', marginBottom: '5px' }}>Comuna:</label>
+                            <input
+                                type="text" name="comuna" value={formData.comuna || 'Ñuñoa'} disabled
+                                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', boxSizing: 'border-box', color: '#64748b', fontWeight: 'bold' }}
+                            />
+                        </div>
+                    </div>
 
                     <label style={{ fontWeight: '500', fontSize: '14px' }}>Condición de Vivienda:</label>
                     <select name="calidadResidente" value={formData.calidadResidente} onChange={handleInputChange} disabled={isSubiendo} style={{ width: '100%', padding: '10px', margin: '5px 0 10px 0', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}>
@@ -397,7 +453,7 @@ export default function FormularioSolicitud(props) {
                             name="cedula"
                             onChange={handleFileChange}
                             accept="image/*"
-                            required={!archivosRaw.cedula}
+                            required={!props.solicitudAEditar && !archivosRaw.cedula}
                             disabled={isSubiendo}
                             style={{ width: '100%', fontSize: '13px' }}
                         />
@@ -428,7 +484,7 @@ export default function FormularioSolicitud(props) {
                                 name="domicilio"
                                 onChange={handleFileChange}
                                 accept="image/*"
-                                required={!archivosRaw.domicilio}
+                                required={!props.solicitudAEditar && !archivosRaw.domicilio}
                                 disabled={isSubiendo}
                                 style={{ flex: 1, fontSize: '13px' }}
                             />
@@ -479,7 +535,7 @@ export default function FormularioSolicitud(props) {
                         name="comprobantePago" 
                         onChange={handleFileChange} 
                         accept="image/*" 
-                        required={!archivosRaw.comprobantePago} 
+                        required={!props.solicitudAEditar && !archivosRaw.comprobantePago} 
                         disabled={isSubiendo}
                     />
                 </div>

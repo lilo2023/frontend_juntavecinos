@@ -313,7 +313,7 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: "'Outfit', sans-serif" }}>
-      <nav style={{ 
+      <nav className="no-print" style={{ 
         backgroundColor: '#0f172a', 
         padding: '14px 24px', 
         display: 'flex', 

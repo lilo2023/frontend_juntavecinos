@@ -134,16 +134,20 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                 );
             }
 
-            // Fallback: Si no está en el localStorage local, consultar la base de datos de MongoDB
+            // Fallback: Si no está en el localStorage local, consultar a la base de datos de MongoDB
             if (!account && loginData.email) {
                 try {
-                    const apiUrl = window.location.hostname === 'localhost'
-                        ? 'http://localhost:5000/api/residentes'
-                        : 'https://backend-junta-vecinos.onrender.com/api/residentes';
-                    const respBD = await fetch(apiUrl);
+                    let respBD;
+                    try {
+                        respBD = await fetch('http://localhost:5000/api/residentes');
+                        if (!respBD.ok) throw new Error('Local no disponible');
+                    } catch (e) {
+                        respBD = await fetch('https://backend-junta-vecinos.onrender.com/api/residentes');
+                    }
                     const dataBD = await respBD.json();
                     const lista = Array.isArray(dataBD) ? dataBD : (dataBD.data || []);
-                    const coincideEnBD = lista.find(s => (s.correo || s.email || '').toLowerCase() === loginData.email.toLowerCase());
+                    const inputEmail = loginData.email.trim().toLowerCase();
+                    const coincideEnBD = lista.find(s => (s.correo || s.email || '').trim().toLowerCase() === inputEmail);
                     if (coincideEnBD) {
                         account = {
                             nombre: coincideEnBD.nombre,

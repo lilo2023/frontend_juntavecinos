@@ -143,14 +143,16 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
     // --- CORREGIDO PASO 2: AHORA EVALÚA EL ESTADO LOCAL ---
     if (estadoLocal === 'Aprobado' || yaAprobadoLocal) {
         return (
-            <div className="certificado-imprimible" style={{ padding: '35px 40px', maxWidth: '750px', margin: '20px auto', border: '1px solid #aaa', boxShadow: '0 0 20px rgba(0,0,0,0.1)', backgroundColor: '#fff', fontFamily: 'Times New Roman, Georgia, serif', position: 'relative', boxSizing: 'border-box' }}>
+            <div className="certificado-imprimible" style={{ padding: '25px 30px', maxWidth: '750px', margin: '20px auto', border: '1px solid #aaa', boxShadow: '0 0 20px rgba(0,0,0,0.1)', backgroundColor: '#fff', fontFamily: 'Times New Roman, Georgia, serif', position: 'relative', boxSizing: 'border-box' }}>
                 <style>{`
                     @media print {
                         @page {
                             size: letter portrait;
-                            margin: 10mm 12mm;
+                            margin: 5mm 8mm;
                         }
-                        body {
+                        html, body {
+                            height: 100% !important;
+                            overflow: hidden !important;
                             background: white !important;
                             margin: 0 !important;
                             padding: 0 !important;
@@ -162,13 +164,13 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                             display: none !important;
                         }
                         .certificado-imprimible {
-                            position: absolute !important;
+                            position: relative !important;
                             left: 0 !important;
                             top: 0 !important;
                             width: 100% !important;
                             max-width: 100% !important;
-                            margin: 0 !important;
-                            padding: 20px 30px !important;
+                            margin: 0 auto !important;
+                            padding: 10px 15px !important;
                             border: none !important;
                             box-shadow: none !important;
                             background: #fff !important;
@@ -179,21 +181,21 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                 `}</style>
 
                 {/* CABECERA OFICIAL CONFIGURADA DINÁMICAMENTE POR EL INQUILINO (TENANT) */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #ddd', paddingBottom: '8px' }}>
 
                     {/* Lado Izquierdo: Datos de la Junta */}
-                    <div style={{ textAlign: 'left', fontSize: '13px', lineHeight: '1.4' }}>
+                    <div style={{ textAlign: 'left', fontSize: '12px', lineHeight: '1.35' }}>
                         {config?.cabeceraTexto || `${config?.nombreJunta || 'JUNTA DE VECINOS'}\nÑUÑOA`}
                     </div>
 
                     {/* Lado Derecho: Folio Dinámico Superior y Datos de Registro */}
                     <div style={{ textAlign: 'right' }}>
-                        <p style={{ textAlign: 'right', fontSize: '16px', fontWeight: 'bold', marginTop: '0', marginBottom: '5px', color: '#000' }}>
+                        <p style={{ textAlign: 'right', fontSize: '15px', fontWeight: 'bold', marginTop: '0', marginBottom: '4px', color: '#000' }}>
                             N° {solicitud.folioTexto || `FOLIO-${solicitud.correlativoSolicitud || '1000'}`}
                         </p>
 
                         {/* Datos Institucionales */}
-                        <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                        <div style={{ fontSize: '11px', color: '#7f8c8d' }}>
                             {config?.rutJunta && <div>RUT: {config.rutJunta}</div>}
                             {config?.personalidadJuridica && <div>Personalidad Jurídica: {config.personalidadJuridica}</div>}
                         </div>
@@ -202,59 +204,59 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                 </div>
 
                 {/* TÍTULO */}
-                <h1 style={{ textAlign: 'center', letterSpacing: '2px', fontSize: '24px', margin: '25px 0 20px 0', fontWeight: 'bold', color: '#000' }}>
+                <h1 style={{ textAlign: 'center', letterSpacing: '1.5px', fontSize: '22px', margin: '18px 0 15px 0', fontWeight: 'bold', color: '#000' }}>
                     CERTIFICADO DE RESIDENCIA
                 </h1>
 
                 {/* CUERPO DEL CERTIFICADO */}
-                <div style={{ fontSize: '16px', lineHeight: '1.8', marginTop: '25px', textAlign: 'justify', padding: '0 5px' }}>
-                    <p style={{ textIndent: '30px', margin: '0 0 15px 0' }}>
+                <div style={{ fontSize: '15px', lineHeight: '1.65', marginTop: '18px', textAlign: 'justify', padding: '0 5px' }}>
+                    <p style={{ textIndent: '25px', margin: '0 0 12px 0' }}>
                         El Presidente de la organización comunal que suscribe, certifica en conformidad a la Ley Nº 19.418, Art. 43 letra f, que don(ña):
-                        <strong style={{ marginLeft: '6px', textTransform: 'uppercase', fontSize: '17px' }}>{solicitud.nombre}</strong>,
+                        <strong style={{ marginLeft: '6px', textTransform: 'uppercase', fontSize: '16px' }}>{solicitud.nombre}</strong>,
                         Cédula Nacional de Identidad N° <strong>{solicitud.rut}</strong>, acreditó registrar domicilio definitivo en la jurisdicción correspondiente a la comuna de {config?.comuna || 'Ñuñoa'}, en la dirección:
                     </p>
 
-                    <div style={{ textAlign: 'center', margin: '20px 0', padding: '12px', border: '1px double #333', fontSize: '19px', fontWeight: 'bold', color: '#1a252f', backgroundColor: '#fdfefe', letterSpacing: '0.5px' }}>
+                    <div style={{ textAlign: 'center', margin: '15px 0', padding: '10px', border: '1px double #333', fontSize: '18px', fontWeight: 'bold', color: '#1a252f', backgroundColor: '#fdfefe', letterSpacing: '0.5px' }}>
                         {solicitud.direccion}
                     </div>
 
-                    <p style={{ margin: '0 0 10px 0' }}>En calidad jurídica de: <strong>{solicitud.calidadResidente || 'Residente'}</strong>.</p>
+                    <p style={{ margin: '0 0 8px 0' }}>En calidad jurídica de: <strong>{solicitud.calidadResidente || 'Residente'}</strong>.</p>
                     <p style={{ margin: '0' }}>Se extiende el presente documento a petición del interesado para ser presentado ante: <strong>{solicitud.destino || 'Trámites Varios'}</strong>.</p>
                 </div>
 
                 {/* BLOQUE DE CIERRE, FECHA Y FIRMA DIGITAL / TIMBRE SIMULADO */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '35px', padding: '0 10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '25px', padding: '0 10px' }}>
 
                     {/* Simulación del Timbre Húmedo Institucional */}
-                    <div style={{ width: '110px', height: '110px', border: '2px dashed #1492ec', borderRadius: '50%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#1492ec', fontSize: '9px', fontWeight: 'bold', textAlign: 'center', transform: 'rotate(-8deg)', padding: '5px', opacity: 0.85, textTransform: 'uppercase', fontFamily: 'Arial, sans-serif' }}>
-                        <div style={{ borderBottom: '1px solid #1492ec', paddingBottom: '2px', marginBottom: '2px', fontSize: '8px' }}>CONFORMIDAD DIGITAL</div>
+                    <div style={{ width: '100px', height: '100px', border: '2px dashed #1492ec', borderRadius: '50%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#1492ec', fontSize: '8.5px', fontWeight: 'bold', textAlign: 'center', transform: 'rotate(-8deg)', padding: '4px', opacity: 0.85, textTransform: 'uppercase', fontFamily: 'Arial, sans-serif' }}>
+                        <div style={{ borderBottom: '1px solid #1492ec', paddingBottom: '2px', marginBottom: '2px', fontSize: '7.5px' }}>CONFORMIDAD DIGITAL</div>
                         <div>{config?.nombreJunta?.length > 25 ? 'ORGANIZACIÓN VECINAL' : (config?.nombreJunta || 'JUNTAS DE VECINOS')}</div>
-                        <div style={{ fontSize: '9px', marginTop: '2px' }}>★ {config?.comuna || 'ÑUÑOA'} ★</div>
+                        <div style={{ fontSize: '8.5px', marginTop: '2px' }}>★ {config?.comuna || 'ÑUÑOA'} ★</div>
                     </div>
 
                     {/* Bloque de Firma Autorizada */}
-                    <div style={{ width: '280px', textAlign: 'center', alignSelf: 'flex-end' }}>
-                        <div style={{ color: '#2c3e50', fontStyle: 'italic', fontSize: '12px', marginBottom: '5px', fontFamily: 'Arial, sans-serif' }}>
+                    <div style={{ width: '260px', textAlign: 'center', alignSelf: 'flex-end' }}>
+                        <div style={{ color: '#2c3e50', fontStyle: 'italic', fontSize: '11px', marginBottom: '4px', fontFamily: 'Arial, sans-serif' }}>
                             ✓ Documento firmado electrónicamente
                         </div>
-                        <div style={{ borderTop: '1px solid #333', paddingTop: '8px', whiteSpace: 'pre-line', fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', lineHeight: '1.3' }}>
+                        <div style={{ borderTop: '1px solid #333', paddingTop: '6px', whiteSpace: 'pre-line', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', lineHeight: '1.25' }}>
                             {config?.pieFirmaTexto || 'LA DIRECTIVA'}
                         </div>
-                        <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#666', fontFamily: 'Arial, sans-serif' }}>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#666', fontFamily: 'Arial, sans-serif' }}>
                             Fecha Emisión: {solicitud.fechaEmision || new Date().toLocaleDateString('es-CL')}
                         </p>
                     </div>
                 </div>
 
                 {/* PIE DE PÁGINA DE VERIFICACIÓN LEGAL */}
-                <div style={{ marginTop: '25px', paddingTop: '12px', borderTop: '1px solid #ddd', fontSize: '11px', color: '#7f8c8d', textAlign: 'center', lineHeight: '1.4', fontFamily: 'Arial, sans-serif' }}>
+                <div style={{ marginTop: '18px', paddingTop: '10px', borderTop: '1px solid #ddd', fontSize: '10.5px', color: '#7f8c8d', textAlign: 'center', lineHeight: '1.35', fontFamily: 'Arial, sans-serif' }}>
                     <strong>NOTA:</strong> Este certificado se emite en conformidad a la Ley 19.418, Art.43, letra f, que sanciona al requirente que faltare a la verdad en cuanto a los datos proporcionados.
                     {config?.emailContacto && ` Verificación disponible vía correo en: ${config.emailContacto}.`}
-                    <div style={{ fontWeight: 'bold', marginTop: '3px', color: '#2c3e50' }}>VIGENCIA POR 90 DÍAS</div>
+                    <div style={{ fontWeight: 'bold', marginTop: '2px', color: '#2c3e50' }}>VIGENCIA POR 90 DÍAS</div>
                 </div>
 
                 {/* BOTÓN DE IMPRESIÓN EXCLUIDO DE LA IMPRESIÓN VÍA CLASE no-print */}
-                <div className="no-print" style={{ marginTop: '30px', textAlign: 'center', fontFamily: 'Arial' }}>
+                <div className="no-print" style={{ marginTop: '25px', textAlign: 'center', fontFamily: 'Arial' }}>
                     <button
                         onClick={() => window.print()}
                         style={{ background: '#28a745', color: 'white', border: 'none', padding: '12px 25px', fontWeight: 'bold', cursor: 'pointer', borderRadius: '4px', fontSize: '14px', boxShadow: '0 2px 5px rgba(0,0,0,0.15)' }}

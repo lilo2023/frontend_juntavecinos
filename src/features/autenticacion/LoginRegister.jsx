@@ -162,6 +162,8 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
 
             if (account) {
                 sessionData = { role: 'vecino', nombre: account.nombre, rut: account.rut, email: account.email };
+                onLoginSuccess(sessionData);
+                return;
             } else {
                 setErrorMessage('Correo o contraseña incorrectos. Para probar, usa: danilo.godoy@alumnos.unab.cl / vecino');
                 return;

@@ -123,13 +123,18 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
             try {
                 let respBD;
                 try {
+                    // Timeout corto (5s) para localhost: si no responde, pasamos a Render sin esperar
+                    const localController = new AbortController();
+                    const localTimeout = setTimeout(() => localController.abort(), 5000);
                     respBD = await fetch('http://localhost:5000/api/residentes/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ correo: inputEmail, password: inputPass })
+                        body: JSON.stringify({ correo: inputEmail, password: inputPass }),
+                        signal: localController.signal
                     });
-                    if (!respBD.ok) throw new Error('Local no responde');
+                    clearTimeout(localTimeout);
                 } catch (e) {
+                    // localhost no disponible (red caída, timeout, etc.) → intentar Render
                     respBD = await fetch('https://backend-junta-vecinos.onrender.com/api/residentes/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -146,6 +151,13 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                         email: dataBD.vecino.email 
                     };
                     onLoginSuccess(sessionData);
+                    return;
+                }
+
+                // El backend respondió correctamente pero rechazó las credenciales.
+                // Mostrar el mensaje real de MongoDB y NO caer al fallback local.
+                if (dataBD.mensaje) {
+                    setErrorMessage(dataBD.mensaje);
                     return;
                 }
             } catch (err) {

@@ -283,6 +283,7 @@ function App() {
               setSession(user);
               setJuntaConfirmada(false);
               if (user.role === 'vecino') {
+                setDebeCargar(true);
                 setVista('vecino');
               } else {
                 // Fusionar preconfiguradas + localStorage para no perder jjvv19

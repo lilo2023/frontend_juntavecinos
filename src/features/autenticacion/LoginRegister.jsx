@@ -115,6 +115,43 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
         let sessionData = null;
 
         if (role === 'vecino') {
+            const inputEmail = loginData.email.trim().toLowerCase();
+            const inputPass = loginData.password;
+
+            // 1. Intentar Autenticación Centralizada en MongoDB
+            try {
+                let respBD;
+                try {
+                    respBD = await fetch('http://localhost:5000/api/residentes/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ correo: inputEmail, password: inputPass })
+                    });
+                    if (!respBD.ok) throw new Error('Local no responde');
+                } catch (e) {
+                    respBD = await fetch('https://backend-junta-vecinos.onrender.com/api/residentes/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ correo: inputEmail, password: inputPass })
+                    });
+                }
+
+                const dataBD = await respBD.json();
+                if (dataBD.ok && dataBD.vecino) {
+                    sessionData = { 
+                        role: 'vecino', 
+                        nombre: dataBD.vecino.nombre, 
+                        rut: dataBD.vecino.rut, 
+                        email: dataBD.vecino.email 
+                    };
+                    onLoginSuccess(sessionData);
+                    return;
+                }
+            } catch (err) {
+                console.warn("Fallo en login de MongoDB, usando fallback local:", err);
+            }
+
+            // 2. Fallback a cuentas locales en localStorage (o cuenta demo)
             const savedVecinos = JSON.parse(localStorage.getItem('vecinos_cuentas') || '[]');
             const demoVecino = {
                 nombre: 'Danilo Marcelo Godoy Díaz',
@@ -124,41 +161,8 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
             };
             const allVecinos = [demoVecino, ...savedVecinos];
             let account = allVecinos.find(
-                (v) => v.email.toLowerCase() === loginData.email.toLowerCase() && v.password === loginData.password
+                (v) => v.email.toLowerCase() === inputEmail
             );
-
-            // Si no coincide contraseña exacta o fue registrado en otro dispositivo (ej. Celular)
-            if (!account) {
-                account = allVecinos.find(
-                    (v) => v.email.toLowerCase() === loginData.email.toLowerCase()
-                );
-            }
-
-            // Fallback: Si no está en el localStorage local, consultar a la base de datos de MongoDB
-            if (!account && loginData.email) {
-                try {
-                    let respBD;
-                    try {
-                        respBD = await fetch('http://localhost:5000/api/residentes');
-                        if (!respBD.ok) throw new Error('Local no disponible');
-                    } catch (e) {
-                        respBD = await fetch('https://backend-junta-vecinos.onrender.com/api/residentes');
-                    }
-                    const dataBD = await respBD.json();
-                    const lista = Array.isArray(dataBD) ? dataBD : (dataBD.data || []);
-                    const inputEmail = loginData.email.trim().toLowerCase();
-                    const coincideEnBD = lista.find(s => (s.correo || s.email || '').trim().toLowerCase() === inputEmail);
-                    if (coincideEnBD) {
-                        account = {
-                            nombre: coincideEnBD.nombre,
-                            rut: coincideEnBD.rut,
-                            email: coincideEnBD.correo || coincideEnBD.email
-                        };
-                    }
-                } catch (err) {
-                    console.error("Error al verificar cuenta en MongoDB:", err);
-                }
-            }
 
             if (account) {
                 sessionData = { role: 'vecino', nombre: account.nombre, rut: account.rut, email: account.email };

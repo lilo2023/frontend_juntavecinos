@@ -114,7 +114,8 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
 
         let sessionData = null;
 
-        if (role === 'vecino') {
+        const userRole = role || 'vecino';
+        if (userRole === 'vecino') {
             const inputEmail = loginData.email.trim().toLowerCase();
             const inputPass = loginData.password;
 

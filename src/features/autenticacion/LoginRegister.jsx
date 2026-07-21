@@ -61,6 +61,7 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
     });
     const [rutError, setRutError] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [cargando, setCargando] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -120,21 +121,31 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
             const inputPass = loginData.password;
 
             // 1. Intentar Autenticación Centralizada en MongoDB
+            setCargando(true);
+            const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
             try {
                 let respBD;
-                try {
-                    // Timeout corto (5s) para localhost: si no responde, pasamos a Render sin esperar
-                    const localController = new AbortController();
-                    const localTimeout = setTimeout(() => localController.abort(), 5000);
-                    respBD = await fetch('http://localhost:5000/api/residentes/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ correo: inputEmail, password: inputPass }),
-                        signal: localController.signal
-                    });
-                    clearTimeout(localTimeout);
-                } catch (e) {
-                    // localhost no disponible (red caída, timeout, etc.) → intentar Render
+                if (isLocalHost) {
+                    try {
+                        const localController = new AbortController();
+                        const localTimeout = setTimeout(() => localController.abort(), 3000);
+                        respBD = await fetch('http://localhost:5000/api/residentes/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ correo: inputEmail, password: inputPass }),
+                            signal: localController.signal
+                        });
+                        clearTimeout(localTimeout);
+                    } catch (e) {
+                        respBD = await fetch('https://backend-junta-vecinos.onrender.com/api/residentes/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ correo: inputEmail, password: inputPass })
+                        });
+                    }
+                } else {
+                    // En GitHub Pages / Producción: consulta directa a Render (HTTPS)
                     respBD = await fetch('https://backend-junta-vecinos.onrender.com/api/residentes/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -143,6 +154,8 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                 }
 
                 const dataBD = await respBD.json();
+                setCargando(false);
+
                 if (dataBD.ok && dataBD.vecino) {
                     sessionData = { 
                         role: 'vecino', 
@@ -155,13 +168,17 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                 }
 
                 // El backend respondió correctamente pero rechazó las credenciales.
-                // Mostrar el mensaje real de MongoDB y NO caer al fallback local.
                 if (dataBD.mensaje) {
                     setErrorMessage(dataBD.mensaje);
                     return;
                 }
             } catch (err) {
-                console.warn("Fallo en login de MongoDB, usando fallback local:", err);
+                console.warn("Fallo en conexión con servidor MongoDB:", err);
+                setCargando(false);
+                if (!isLocalHost) {
+                    setErrorMessage('El servidor backend en Render está despertando (cold start). Por favor presiona "Iniciar Sesión" nuevamente en unos segundos.');
+                    return;
+                }
             }
 
             // 2. Fallback a cuentas locales en localStorage (o cuenta demo)
@@ -658,8 +675,8 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                             </button>
                         </div>
 
-                        <button type="submit" style={buttonStyle}>
-                            Iniciar Sesión
+                        <button type="submit" disabled={cargando} style={{ ...buttonStyle, opacity: cargando ? 0.7 : 1, cursor: cargando ? 'wait' : 'pointer' }}>
+                            {cargando ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                         </button>
 
                         <p style={{ textAlign: 'center', fontSize: '14px', marginTop: '20px', color: '#64748b' }}>

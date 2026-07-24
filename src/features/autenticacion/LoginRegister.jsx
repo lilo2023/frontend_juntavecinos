@@ -675,8 +675,42 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                             </button>
                         </div>
 
-                        <button type="submit" disabled={cargando} style={{ ...buttonStyle, opacity: cargando ? 0.7 : 1, cursor: cargando ? 'wait' : 'pointer' }}>
-                            {cargando ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                        <button 
+                            type="submit" 
+                            disabled={cargando} 
+                            style={{ 
+                                ...buttonStyle, 
+                                opacity: cargando ? 0.85 : 1, 
+                                cursor: cargando ? 'wait' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '10px'
+                            }}
+                        >
+                            {cargando ? (
+                                <>
+                                    <span style={{
+                                        width: '18px',
+                                        height: '18px',
+                                        border: '3px solid rgba(255, 255, 255, 0.3)',
+                                        borderTop: '3px solid #ffffff',
+                                        borderRadius: '50%',
+                                        display: 'inline-block',
+                                        boxSizing: 'border-box',
+                                        animation: 'btnSpin 0.8s linear infinite'
+                                    }} />
+                                    <span>Iniciando sesión...</span>
+                                    <style>{`
+                                        @keyframes btnSpin {
+                                            0% { transform: rotate(0deg); }
+                                            100% { transform: rotate(360deg); }
+                                        }
+                                    `}</style>
+                                </>
+                            ) : (
+                                'Iniciar Sesión'
+                            )}
                         </button>
 
                         <p style={{ textAlign: 'center', fontSize: '14px', marginTop: '20px', color: '#64748b' }}>

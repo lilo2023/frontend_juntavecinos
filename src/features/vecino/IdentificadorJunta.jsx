@@ -15,8 +15,9 @@ function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
 }
 
 export default function IdentificadorJunta({ onConfirmarJunta }) {
-    const [step, setStep] = useState('inicio'); // inicio, lista, no_conozco, gps_buscando, direccion_buscando, sugerencia
+    const [step, setStep] = useState('inicio'); // inicio, lista, no_conozco, gps_buscando, direccion_buscando, sugerencia, modal_union_comunal
     const [juntaSeleccionada, setJuntaSeleccionada] = useState('');
+    const [juntaOriginal, setJuntaOriginal] = useState(null);
     const [direccionInput, setDireccionInput] = useState('');
     const [juntaSugerida, setJuntaSugerida] = useState(null);
     const [distanciaSugerida, setDistanciaSugerida] = useState(0);
@@ -34,28 +35,83 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
             setErrorMsg('Por favor, selecciona una junta de vecinos de la lista.');
             return;
         }
-        // Map data to the tenant structure expected by App.js
+        if (juntaSeleccionada.id !== 'jjvv19' && juntaSeleccionada.id !== 'unionComunal') {
+            setJuntaOriginal(juntaSeleccionada);
+            setStep('modal_union_comunal');
+            return;
+        }
         const tenantConfig = mapearATenant(juntaSeleccionada);
         onConfirmarJunta(tenantConfig);
     };
 
     const handleConfirmarSugerida = () => {
         if (!juntaSugerida) return;
+        if (juntaSugerida.id !== 'jjvv19' && juntaSugerida.id !== 'unionComunal') {
+            setJuntaOriginal(juntaSugerida);
+            setStep('modal_union_comunal');
+            return;
+        }
         const tenantConfig = mapearATenant(juntaSugerida);
         onConfirmarJunta(tenantConfig);
     };
 
     // Helper to map our geographical juntasData to the multi-tenant SaaS config structure in App.js
     const mapearATenant = (jvv) => {
+        const dirConsultada = direccionInput ? direccionInput.trim() : '';
+
+        if (jvv.id === 'unionComunal') {
+            return {
+                id: 'unionComunal',
+                nombreJunta: 'Unión Comunal de Juntas de Vecinos de Ñuñoa',
+                rutJunta: '70.123.999-5',
+                personalidadJuridica: 'RNPJSFL 10098',
+                direccionOficina: 'Av. Irarrázaval 085, Ñuñoa',
+                sitioWeb: 'www.unconunoa.cl',
+                emailContacto: 'unioncomunalnunoa@gmail.com',
+                telefono: '+56 2 2274 9900',
+                correlativoInicial: '1000',
+                valorCertificado: '1500',
+                cabeceraTexto: 'UNIÓN COMUNAL DE JUNTAS DE VECINOS DE ÑUÑOA\nORGANIZACIÓN VECINAL MATRIZ\nÑUÑOA',
+                pieFirmaTexto: 'LA DIRECTIVA\nUnión Comunal de Juntas de Vecinos de Ñuñoa',
+                comuna: 'Ñuñoa',
+                banco: 'BancoEstado',
+                tipoCuenta: 'Cuenta Corriente',
+                numeroCuenta: '1900-5544-22',
+                direccionConsultada: dirConsultada
+            };
+        }
+
+        if (jvv.id === 'jjvv19') {
+            return {
+                id: 'jjvv19',
+                nombreJunta: 'Junta de Vecinos N° 19 Universidad',
+                rutJunta: '65.033.930-4',
+                personalidadJuridica: 'RNPJSFL 211394',
+                direccionOficina: 'Av. José Pedro Alessandri 1036, Ñuñoa',
+                sitioWeb: 'www.unconunoa.cl',
+                emailContacto: 'jvuniversidad19@gmail.com',
+                telefono: '+56 2 2894 5764',
+                correlativoInicial: '1000',
+                valorCertificado: '1000',
+                cabeceraTexto: 'JUNTA DE VECINOS N° 19 UNIVERSIDAD\nUNIDAD VECINAL N° 19\nÑUÑOA',
+                pieFirmaTexto: 'LA DIRECTIVA\nJunta de Vecinos N° 19 Universidad',
+                comuna: 'Ñuñoa',
+                banco: 'Banco del Estado de Chile',
+                tipoCuenta: 'Cuenta Vista / RUT',
+                numeroCuenta: '123456789',
+                direccionConsultada: dirConsultada
+            };
+        }
+
         return {
             id: jvv.id,
-            nombreJunta: jvv.name.replace(/^\d+\s*-\s*/, 'Junta de Vecinos '), // '19- Universidad' -> 'Junta de Vecinos Universidad'
-            rutJunta: jvv.id === 'jjvv19' ? '65.033.930-4' : '72.123.456-K', // fallback or real if jjvv19
-            personalidadJuridica: jvv.id === 'jjvv19' ? 'RNPJSFL 211394' : 'RNPJSFL 45120-X',
+            nombreJunta: jvv.name.replace(/^\d+\s*-\s*/, 'Junta de Vecinos '),
+            rutJunta: '72.123.456-K',
+            personalidadJuridica: 'RNPJSFL 45120-X',
             direccionOficina: jvv.address,
-            sitioWeb: jvv.id === 'jjvv19' ? 'www.unconunoa.cl' : '',
+            sitioWeb: '',
             emailContacto: jvv.email,
-            telefono: jvv.id === 'jjvv19' ? '+56 2 2894 5764' : '',
+            telefono: '',
             correlativoInicial: '1000',
             valorCertificado: jvv.val || '1000',
             cabeceraTexto: `JUNTA DE VECINOS ${jvv.name.toUpperCase()}\nUNIDAD VECINAL\nÑUÑOA`,
@@ -63,7 +119,8 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
             comuna: 'Ñuñoa',
             banco: 'Banco del Estado de Chile',
             tipoCuenta: 'Cuenta Vista / RUT',
-            numeroCuenta: '123456789'
+            numeroCuenta: '123456789',
+            direccionConsultada: dirConsultada
         };
     };
 
@@ -452,25 +509,6 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
                             ></iframe>
                         </div>
 
-                        {/* RF-11 Check: warning alert if JVV config in localStorage is incomplete */}
-                        {juntaSugerida.id !== 'jjvv19' && (
-                            <div style={{
-                                display: 'flex',
-                                gap: '10px',
-                                backgroundColor: '#fffbeb',
-                                border: '1px solid #fde68a',
-                                borderRadius: '10px',
-                                padding: '12px 14px',
-                                fontSize: '12px',
-                                color: '#78350f',
-                                textAlign: 'left',
-                                marginBottom: '24px',
-                                lineHeight: '1.4'
-                            }}>
-                                ⚠️ <strong>Aviso Importante:</strong> Esta junta no ha completado la configuración de sus métodos de pago en línea en la plataforma. Tu trámite se procesará inicialmente por transferencia electrónica directa.
-                            </div>
-                        )}
-
                         <div style={{ display: 'flex', gap: '12px' }}>
                             <button 
                                 onClick={() => { setStep('no_conozco'); setJuntaSugerida(null); }}
@@ -485,6 +523,76 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
                                 Confirmar y Continuar
                             </button>
                         </div>
+                    </div>
+                )}
+
+                {/* 6. MODAL DERIVACION INTELIGENTE A UNION COMUNAL */}
+                {step === 'modal_union_comunal' && (
+                    <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                        <span style={{ fontSize: '45px', display: 'block', marginBottom: '12px' }}>🏛️</span>
+                        <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#0f172a', marginBottom: '8px' }}>
+                            Junta de Vecinos en Proceso de Incorporación
+                        </h2>
+                        <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '20px' }}>
+                            Facilidad de atención al vecino de la Comuna de Ñuñoa
+                        </p>
+
+                        <div style={{
+                            backgroundColor: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            borderRadius: '14px',
+                            padding: '20px',
+                            textAlign: 'left',
+                            marginBottom: '24px',
+                            fontSize: '14px',
+                            color: '#1e3a8a',
+                            lineHeight: '1.6'
+                        }}>
+                            <p style={{ margin: '0 0 12px 0' }}>
+                                Tu ubicación corresponde a la <strong>Junta N° {juntaOriginal?.name || 'seleccionada'}</strong>, la cual aún no cuenta con su directiva suscrita en la plataforma digital.
+                            </p>
+                            <p style={{ margin: 0, fontWeight: '600', color: '#1d4ed8' }}>
+                                💡 ¡No te preocupes! La <strong>Unión Comunal de Juntas de Vecinos de Ñuñoa</strong> agrupa a todas las organizaciones de la comuna y está habilitada legalmente (Ley N° 19.418) para emitir tu Certificado de Residencia oficial.
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                const unionJunta = juntasDeVecinosNunoa.find(j => j.id === 'unionComunal') || { id: 'unionComunal', name: 'Unión Comunal de Juntas de Vecinos de Ñuñoa', address: 'Av. Irarrázaval 085, Ñuñoa' };
+                                const tenantConfig = mapearATenant(unionJunta);
+                                onConfirmarJunta(tenantConfig);
+                            }}
+                            style={{
+                                width: '100%',
+                                backgroundColor: '#2563eb',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '12px',
+                                padding: '14px 20px',
+                                fontSize: '15px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                marginBottom: '14px',
+                                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
+                            }}
+                        >
+                            Emitir Certificado vía Unión Comunal de Ñuñoa
+                        </button>
+
+                        <button
+                            onClick={() => { setStep('inicio'); setJuntaOriginal(null); }}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#64748b',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                cursor: 'pointer',
+                                textDecoration: 'underline'
+                            }}
+                        >
+                            ← Cambiar ubicación o seleccionar otra Junta
+                        </button>
                     </div>
                 )}
 

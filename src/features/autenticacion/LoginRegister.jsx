@@ -284,8 +284,6 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
 
             const demoJuntas = [
                 { email: 'jvuniversidad19@gmail.com', password: 'junta', nombreRepresentante: 'Danilo Godoy', nombreJunta: 'Junta de Vecinos N° 19 Universidad', idJunta: 'jjvv19', cargo: 'Presidente' },
-                { email: 'junta@jjvv.cl', password: 'junta', nombreRepresentante: 'Administrador Demo', nombreJunta: 'Junta de Vecinos Demo', idJunta: 'jjvv19', cargo: 'Administrador' },
-                { email: 'admin@jjvv.cl', password: 'admin', nombreRepresentante: 'Administrador Demo', nombreJunta: 'Junta de Vecinos Demo', idJunta: 'jjvv19', cargo: 'Administrador' },
                 { email: 'unioncomunalnunoa@gmail.com', password: 'junta', nombreRepresentante: 'Director Unión', nombreJunta: 'Unión Comunal de Juntas de Vecinos de Ñuñoa', idJunta: 'unionComunal', cargo: 'Director' }
             ];
 
@@ -1364,9 +1362,9 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                 color: '#475569',
                 lineHeight: '1.5'
             }}>
-                💡 <strong>Credenciales de Prueba (Demo):</strong><br />
-                • <strong>Vecino:</strong> <code>danilo.godoy@alumnos.unab.cl</code> / contraseña: <code>vecino</code><br />
-                • <strong>Operador Junta:</strong> <code>jvuniversidad19@gmail.com</code> / contraseña: <code>junta</code>
+                💡 <strong>Operadores de Juntas de Vecinos:</strong><br />
+                • <strong>JJVV N° 19 Universidad:</strong> <code>jvuniversidad19@gmail.com</code> / contraseña: <code>junta</code><br />
+                • <strong>Unión Comunal Ñuñoa:</strong> <code>unioncomunalnunoa@gmail.com</code> / contraseña: <code>junta</code>
             </div>
         </div>
     );

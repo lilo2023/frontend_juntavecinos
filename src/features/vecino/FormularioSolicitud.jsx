@@ -92,9 +92,10 @@ export default function FormularioSolicitud(props) {
         setFormData((prev) => ({
             ...prev,
             comuna: infoJunta.comuna || 'Ñuñoa',
-            montoPago: infoJunta.valorCertificado || '0'
+            montoPago: infoJunta.valorCertificado || '0',
+            direccion: prev.direccion || infoJunta.direccionConsultada || ''
         }));
-    }, [infoJunta.comuna, infoJunta.valorCertificado]);
+    }, [infoJunta.comuna, infoJunta.valorCertificado, infoJunta.direccionConsultada]);
 
     // Pre-cargar datos si viene una solicitud a editar
     useEffect(() => {
@@ -374,6 +375,35 @@ export default function FormularioSolicitud(props) {
             <h2 style={{ color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px', fontSize: '19px' }}>
                 {infoJunta.nombreJunta ? `Portal Digital: ${infoJunta.nombreJunta}` : '✨ Portal de Residente'}
             </h2>
+
+            {/* BANNER PREVIO CON REQUISITOS OBLIGATORIOS Y RECOMENDACIÓN AL VECINO */}
+            <div style={{
+                backgroundColor: '#f0f9ff',
+                border: '1px solid #bae6fd',
+                borderRadius: '12px',
+                padding: '16px 18px',
+                fontSize: '13px',
+                color: '#0369a1',
+                lineHeight: '1.6',
+                marginTop: '15px',
+                marginBottom: '15px',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.03)'
+            }}>
+                <strong style={{ fontSize: '14px', color: '#0c4a6e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    📋 Requisitos para completar tu solicitud:
+                </strong>
+                <p style={{ margin: '6px 0 8px 0', color: '#0284c7' }}>
+                    Para que la directiva valide y apruebe tu Certificado de Residencia, asegúrate de <strong>tener listas en tu dispositivo las siguientes 3 imágenes o documentos (JPG, PNG o PDF)</strong> antes de enviar el formulario:
+                </p>
+                <ol style={{ margin: '0 0 8px 18px', padding: 0 }}>
+                    <li style={{ marginBottom: '4px' }}>🪪 <strong>1. Cédula de Identidad:</strong> Imagen legible por ambos lados (frente y reverso).</li>
+                    <li style={{ marginBottom: '4px' }}>📄 <strong>2. Comprobante de Domicilio:</strong> Cuenta de servicio (luz, agua, gas, internet), contrato de arriendo o similar a tu nombre.</li>
+                    <li style={{ marginBottom: '4px' }}>💳 <strong>3. Comprobante de Transferencia:</strong> Foto o PDF del comprobante de transferencia por el arancel de <strong>{renderArancel()}</strong> realizado a la cuenta bancaria de la Junta.</li>
+                </ol>
+                <span style={{ fontSize: '12px', color: '#0369a1', fontWeight: '500' }}>
+                    💡 <em>Tip: Si ya tienes las 3 fotos o archivos guardados en tu equipo, completarás la solicitud en menos de 2 minutos.</em>
+                </span>
+            </div>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
 

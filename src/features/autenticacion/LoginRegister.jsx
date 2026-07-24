@@ -65,6 +65,16 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+    // Recuperar contraseña state
+    const [esOlvidadoPassword, setEsOlvidadoPassword] = useState(false);
+    const [recoveryData, setRecoveryData] = useState({
+        rut: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+    });
+    const [recoverySuccessMessage, setRecoverySuccessMessage] = useState('');
+
     // 2FA state
     const [paso2FA, setPaso2FA] = useState(false);       // muestra pantalla del código
     const [codigo2FA, setCodigo2FA] = useState('');       // lo que escribe el usuario
@@ -74,6 +84,72 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
     const [codigoDemo, setCodigoDemo] = useState('');     // código capturado para bypass de pruebas
 
     const BACKEND = 'https://backend-junta-vecinos.onrender.com';
+
+    const handleRecoveryChange = (e) => {
+        const { name, value } = e.target;
+        if (name === 'rut') {
+            const formatted = formatearRut(value);
+            setRecoveryData({ ...recoveryData, rut: formatted });
+            if (formatted.replace(/[^0-9kK]/g, '').length >= 8) {
+                setRutError(!validarRutChileno(formatted));
+            } else {
+                setRutError(false);
+            }
+        } else {
+            setRecoveryData({ ...recoveryData, [name]: value });
+        }
+    };
+
+    const handleRecoverySubmit = async (e) => {
+        e.preventDefault();
+        setErrorMessage('');
+        setRecoverySuccessMessage('');
+
+        if (rutError) {
+            setErrorMessage('El RUT ingresado no es válido.');
+            return;
+        }
+
+        if (recoveryData.password !== recoveryData.confirmPassword) {
+            setErrorMessage('Las contraseñas ingresadas no coinciden.');
+            return;
+        }
+
+        setCargando(true);
+        const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const urlEndpoint = isLocalHost
+            ? 'http://localhost:5000/api/residentes/restablecer-password'
+            : 'https://backend-junta-vecinos.onrender.com/api/residentes/restablecer-password';
+
+        try {
+            const resp = await fetch(urlEndpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    rut: recoveryData.rut,
+                    correo: recoveryData.email,
+                    nuevaPassword: recoveryData.password
+                })
+            });
+            const data = await resp.json();
+            setCargando(false);
+
+            if (data.ok) {
+                setRecoverySuccessMessage(data.mensaje || '¡Contraseña restablecida con éxito!');
+                setLoginData({ ...loginData, email: recoveryData.email });
+                setRecoveryData({ rut: '', email: '', password: '', confirmPassword: '' });
+                setTimeout(() => {
+                    setEsOlvidadoPassword(false);
+                    setIsLogin(true);
+                }, 2500);
+            } else {
+                setErrorMessage(data.mensaje || 'No se pudo restablecer la contraseña.');
+            }
+        } catch (err) {
+            setCargando(false);
+            setErrorMessage('Error de conexión con el servidor al restablecer la contraseña.');
+        }
+    };
 
     const handleLoginChange = (e) => {
         setLoginData({ ...loginData, [e.target.name]: e.target.value });
@@ -382,7 +458,7 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
         }
     };
 
-    const handleRegisterSubmit = (e) => {
+    const handleRegisterSubmit = async (e) => {
         e.preventDefault();
         setErrorMessage('');
 
@@ -396,18 +472,50 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
             return;
         }
 
+        setCargando(true);
+        const emailClean = registerData.email.trim().toLowerCase();
+        const rutClean = registerData.rut.replace(/[^0-9kK]/g, '').toUpperCase();
+
+        const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const urlEndpoint = isLocalHost
+            ? 'http://localhost:5000/api/residentes'
+            : 'https://backend-junta-vecinos.onrender.com/api/residentes';
+
+        try {
+            // 1. Verificar si el correo o RUT ya existe en MongoDB Atlas
+            const resp = await fetch(urlEndpoint);
+            const data = await resp.json();
+            
+            if (data.ok && Array.isArray(data.data)) {
+                const existe = data.data.some(r => {
+                    const emailBD = (r.correo || '').trim().toLowerCase();
+                    const rutBD = (r.rut || '').replace(/[^0-9kK]/g, '').toUpperCase();
+                    return emailBD === emailClean || rutBD === rutClean;
+                });
+
+                if (existe) {
+                    setCargando(false);
+                    setErrorMessage('Este RUT o correo electrónico ya se encuentra registrado en el sistema. Por favor Inicia Sesión con tu contraseña (si no la recuerdas, puedes usar la opción "¿Olvidaste tu contraseña?" en el Inicio de Sesión).');
+                    setLoginData({ ...loginData, email: registerData.email });
+                    return;
+                }
+            }
+        } catch (err) {
+            console.warn("No se pudo consultar duplicidad en MongoDB, continuando:", err);
+        }
+
+        // 2. Si no existe en BD, guardar cuenta localmente
         const savedVecinos = JSON.parse(localStorage.getItem('vecinos_cuentas') || '[]');
-        
-        // Check duplicate email
-        const exists = savedVecinos.some(
-            (v) => v.email.toLowerCase() === registerData.email.toLowerCase()
+        const existsLocal = savedVecinos.some(
+            (v) => v.email.toLowerCase() === emailClean
         );
-        if (exists || registerData.email.toLowerCase() === 'danilo.godoy@alumnos.unab.cl') {
-            setErrorMessage('El correo electrónico ya se encuentra registrado.');
+        if (existsLocal || emailClean === 'danilo.godoy@alumnos.unab.cl') {
+            setCargando(false);
+            setErrorMessage('Este correo ya se encuentra registrado. Por favor Inicia Sesión con tu contraseña o usa la opción "¿Olvidaste tu contraseña?".');
+            setLoginData({ ...loginData, email: registerData.email });
             return;
         }
 
-        // Save account
         const newVecino = {
             nombre: registerData.nombre,
             rut: registerData.rut,
@@ -417,10 +525,11 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
 
         savedVecinos.push(newVecino);
         localStorage.setItem('vecinos_cuentas', JSON.stringify(savedVecinos));
+        setCargando(false);
 
-        alert('¡Registro exitoso! Ya puedes iniciar sesión con tus credenciales.');
+        alert('¡Registro exitoso! Ya puedes iniciar sesión con tu correo y contraseña.');
         setIsLogin(true);
-        setLoginData({ email: registerData.email, password: '' });
+        setLoginData({ email: registerData.email, password: registerData.password });
         setRegisterData({ nombre: '', rut: '', email: '', password: '', confirmPassword: '' });
     };
 
@@ -594,18 +703,37 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                     color: '#0f172a',
                     marginBottom: '8px'
                 }}>
-                    {role === 'vecino' 
-                        ? (isLogin ? 'Acceso Residentes' : 'Registro de Residentes')
-                        : (isLogin ? 'Acceso Operadores JJVV' : 'Registrar Nueva Junta')
+                    {esOlvidadoPassword
+                        ? 'Restablecer Contraseña'
+                        : (role === 'vecino' 
+                            ? (isLogin ? 'Acceso Residentes' : 'Registro de Residentes')
+                            : (isLogin ? 'Acceso Operadores JJVV' : 'Registrar Nueva Junta'))
                     }
                 </h2>
                 
                 <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '24px' }}>
-                    {role === 'vecino'
-                        ? (isLogin ? 'Inicia sesión para gestionar tus certificados de residencia.' : 'Crea tu cuenta única para solicitar documentos.')
-                        : (isLogin ? 'Ingresa con las credenciales de administración de tu junta.' : 'Obtén tu cuenta de operador para habilitar tu entidad en la plataforma.')
+                    {esOlvidadoPassword
+                        ? 'Ingresa tu RUT y correo registrado para definir una nueva clave.'
+                        : (role === 'vecino'
+                            ? (isLogin ? 'Inicia sesión para gestionar tus certificados de residencia.' : 'Crea tu cuenta única para solicitar documentos.')
+                            : (isLogin ? 'Ingresa con las credenciales de administración de tu junta.' : 'Obtén tu cuenta de operador para habilitar tu entidad en la plataforma.'))
                     }
                 </p>
+
+                {recoverySuccessMessage && (
+                    <div style={{
+                        backgroundColor: '#f0fdf4',
+                        border: '1px solid #bbf7d0',
+                        color: '#15803d',
+                        padding: '12px 16px',
+                        borderRadius: '10px',
+                        fontSize: '14px',
+                        marginBottom: '20px',
+                        lineHeight: '1.4'
+                    }}>
+                        {recoverySuccessMessage}
+                    </div>
+                )}
 
                 {errorMessage && (
                     <div style={{
@@ -622,7 +750,155 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                     </div>
                 )}
 
-                {isLogin ? (
+                {esOlvidadoPassword ? (
+                    /* FORMULARIO RESTABLECER CONTRASEÑA */
+                    <form onSubmit={handleRecoverySubmit}>
+                        <label style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
+                            RUT del Vecino:
+                        </label>
+                        <input
+                            type="text"
+                            name="rut"
+                            placeholder="12.345.678-9"
+                            value={recoveryData.rut}
+                            onChange={handleRecoveryChange}
+                            required
+                            style={{
+                                ...inputStyle,
+                                borderColor: rutError ? '#ef4444' : '#e2e8f0'
+                            }}
+                        />
+                        {rutError && (
+                            <p style={{ color: '#ef4444', fontSize: '12px', margin: '-10px 0 12px 0' }}>
+                                RUT no válido. Verifica el número.
+                            </p>
+                        )}
+
+                        <label style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
+                            Correo Electrónico Registrado:
+                        </label>
+                        <input
+                            type="email"
+                            name="email"
+                            placeholder="nombre@correo.com"
+                            value={recoveryData.email}
+                            onChange={handleRecoveryChange}
+                            required
+                            style={inputStyle}
+                        />
+
+                        <label style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
+                            Nueva Contraseña:
+                        </label>
+                        <div style={{ position: 'relative', marginBottom: '16px' }}>
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                name="password"
+                                placeholder="••••••••"
+                                value={recoveryData.password}
+                                onChange={handleRecoveryChange}
+                                required
+                                style={{ ...inputStyle, marginBottom: '0', paddingRight: '44px' }}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(v => !v)}
+                                style={{
+                                    position: 'absolute',
+                                    right: '12px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: '0',
+                                    color: '#94a3b8',
+                                    fontSize: '18px',
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                }}
+                            >
+                                {showPassword ? '🙈' : '👁️'}
+                            </button>
+                        </div>
+
+                        <label style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
+                            Confirmar Nueva Contraseña:
+                        </label>
+                        <div style={{ position: 'relative', marginBottom: '20px' }}>
+                            <input
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                name="confirmPassword"
+                                placeholder="••••••••"
+                                value={recoveryData.confirmPassword}
+                                onChange={handleRecoveryChange}
+                                required
+                                style={{ ...inputStyle, marginBottom: '0', paddingRight: '44px' }}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(v => !v)}
+                                style={{
+                                    position: 'absolute',
+                                    right: '12px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: '0',
+                                    color: '#94a3b8',
+                                    fontSize: '18px',
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                }}
+                            >
+                                {showConfirmPassword ? '🙈' : '👁️'}
+                            </button>
+                        </div>
+
+                        <button 
+                            type="submit" 
+                            disabled={cargando} 
+                            style={{ 
+                                ...buttonStyle, 
+                                opacity: cargando ? 0.85 : 1, 
+                                cursor: cargando ? 'wait' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '10px'
+                            }}
+                        >
+                            {cargando ? (
+                                <>
+                                    <span style={{
+                                        width: '18px',
+                                        height: '18px',
+                                        border: '3px solid rgba(255, 255, 255, 0.3)',
+                                        borderTop: '3px solid #ffffff',
+                                        borderRadius: '50%',
+                                        display: 'inline-block',
+                                        boxSizing: 'border-box',
+                                        animation: 'btnSpin 0.8s linear infinite'
+                                    }} />
+                                    <span>Restableciendo...</span>
+                                </>
+                            ) : (
+                                'Restablecer Contraseña'
+                            )}
+                        </button>
+
+                        <p style={{ textAlign: 'center', fontSize: '14px', marginTop: '20px', color: '#64748b' }}>
+                            <span 
+                                onClick={() => { setEsOlvidadoPassword(false); setErrorMessage(''); setRecoverySuccessMessage(''); }}
+                                style={{ color: '#2563eb', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}
+                            >
+                                ← Volver al inicio de sesión
+                            </span>
+                        </p>
+                    </form>
+                ) : isLogin ? (
                     /* LOGIN FORM */
                     <form onSubmit={handleLoginSubmit}>
                         <label style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
@@ -641,7 +917,7 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                         <label style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>
                             Contraseña:
                         </label>
-                        <div style={{ position: 'relative', marginBottom: '16px' }}>
+                        <div style={{ position: 'relative', marginBottom: '8px' }}>
                             <input
                                 type={showPassword ? 'text' : 'password'}
                                 name="password"
@@ -674,6 +950,17 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                                 {showPassword ? '🙈' : '👁️'}
                             </button>
                         </div>
+
+                        {role === 'vecino' && (
+                            <div style={{ textAlign: 'right', marginBottom: '16px' }}>
+                                <span 
+                                    onClick={() => { setEsOlvidadoPassword(true); setErrorMessage(''); setRecoverySuccessMessage(''); }}
+                                    style={{ fontSize: '13px', color: '#2563eb', fontWeight: '500', cursor: 'pointer', textDecoration: 'underline' }}
+                                >
+                                    ¿Olvidaste tu contraseña?
+                                </span>
+                            </div>
+                        )}
 
                         <button 
                             type="submit" 

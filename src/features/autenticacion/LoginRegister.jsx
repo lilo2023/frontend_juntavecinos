@@ -279,57 +279,75 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                 return;
             }
         } else {
-            const emailInput = loginData.email.toLowerCase();
+            const emailInput = loginData.email.trim().toLowerCase();
             const passInput = loginData.password;
 
-            const demoJuntas = [
-                { email: 'jvuniversidad19@gmail.com', password: 'junta', nombreRepresentante: 'Danilo Godoy', nombreJunta: 'Junta de Vecinos N° 19 Universidad', idJunta: 'jjvv19', cargo: 'Presidente' },
-                { email: 'unioncomunalnunoa@gmail.com', password: 'junta', nombreRepresentante: 'Director Unión', nombreJunta: 'Unión Comunal de Juntas de Vecinos de Ñuñoa', idJunta: 'unionComunal', cargo: 'Director' }
-            ];
+            setCargando(true);
+            const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const urlEndpoint = isLocalHost
+                ? 'http://localhost:5000/api/juntas/login'
+                : 'https://backend-junta-vecinos.onrender.com/api/juntas/login';
 
-            const savedJuntas = JSON.parse(localStorage.getItem('juntas_cuentas') || '[]');
-            const allJuntas = [...demoJuntas, ...savedJuntas];
+            try {
+                const resp = await fetch(urlEndpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ correo: emailInput, password: passInput })
+                });
+                const data = await resp.json();
+                setCargando(false);
 
-            const account = allJuntas.find(
-                (j) => j.email.toLowerCase() === emailInput && j.password === passInput
-            );
+                if (data.ok && data.junta) {
+                    sessionData = {
+                        role: 'junta',
+                        email: data.junta.email,
+                        nombre: data.junta.nombre,
+                        nombreJunta: data.junta.nombreJunta,
+                        idJunta: data.junta.idJunta || 'jjvv19',
+                        cargo: data.junta.cargo || 'Presidente'
+                    };
+                } else if (data.mensaje) {
+                    setErrorMessage(data.mensaje);
+                    return;
+                }
+            } catch (err) {
+                console.warn("Fallo al autenticar junta en backend, usando fallback:", err);
+                setCargando(false);
+            }
 
-            if (account) {
-                sessionData = { 
-                    role: 'junta', 
-                    email: account.email, 
-                    nombre: account.nombreRepresentante, 
-                    nombreJunta: account.nombreJunta,
-                    idJunta: account.idJunta || 'jjvv19',
-                    cargo: account.cargo || 'Presidente'
-                };
-            } else {
-                setErrorMessage('Credenciales incorrectas. Para probar, usa: jvuniversidad19@gmail.com / junta');
-                return;
+            if (!sessionData) {
+                const demoJuntas = [
+                    { email: 'jvuniversidad19@gmail.com', password: 'junta1', nombreRepresentante: 'Danilo Godoy', nombreJunta: 'Junta de Vecinos N° 19 Universidad', idJunta: 'jjvv19', cargo: 'Presidente' },
+                    { email: 'unioncomunalnunoa@gmail.com', password: 'junta2', nombreRepresentante: 'Director Unión', nombreJunta: 'Unión Comunal de Juntas de Vecinos de Ñuñoa', idJunta: 'unionComunal', cargo: 'Director' }
+                ];
+
+                const savedJuntas = JSON.parse(localStorage.getItem('juntas_cuentas') || '[]');
+                const allJuntas = [...demoJuntas, ...savedJuntas];
+
+                const account = allJuntas.find(
+                    (j) => j.email.toLowerCase() === emailInput && j.password === passInput
+                );
+
+                if (account) {
+                    sessionData = { 
+                        role: 'junta', 
+                        email: account.email, 
+                        nombre: account.nombreRepresentante, 
+                        nombreJunta: account.nombreJunta,
+                        idJunta: account.idJunta || 'jjvv19',
+                        cargo: account.cargo || 'Presidente'
+                    };
+                } else {
+                    setErrorMessage('Credenciales de operador incorrectas. Para probar usa: junta1 (JJVV 19) o junta2 (Unión Comunal).');
+                    return;
+                }
             }
         }
 
-        // Credenciales OK → enviar código 2FA
-        setEnviando2FA(true);
-        try {
-            const resp = await fetch(`${BACKEND}/api/auth/send-code`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: sessionData.email })
-            });
-            const data = await resp.json();
-            if (data.ok) {
-                setSessionPendiente(sessionData);
-                setPaso2FA(true);
-                setCodigo2FA('');
-                setCodigoDemo(data.code || ''); // Guarda el código de demo retornado
-            } else {
-                setErrorMessage('No se pudo enviar el código. Intenta de nuevo.');
-            }
-        } catch {
-            setErrorMessage('Error de conexión con el servidor. Verifica que el backend esté activo.');
-        } finally {
-            setEnviando2FA(false);
+        // Credenciales OK → Acceso directo sin 2FA
+        if (sessionData) {
+            onLoginSuccess(sessionData);
+            return;
         }
     };
 
@@ -998,29 +1016,17 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                             )}
                         </button>
 
-                        <p style={{ textAlign: 'center', fontSize: '14px', marginTop: '20px', color: '#64748b' }}>
-                            {role === 'vecino' ? (
-                                <>
-                                    ¿No tienes una cuenta?{' '}
-                                    <span 
-                                        onClick={() => { setIsLogin(false); setErrorMessage(''); }}
-                                        style={{ color: '#2563eb', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}
-                                    >
-                                        Regístrate aquí
-                                    </span>
-                                </>
-                            ) : (
-                                <>
-                                    ¿Representas a una nueva Junta de Vecinos?{' '}
-                                    <span 
-                                        onClick={() => { setIsLogin(false); setErrorMessage(''); }}
-                                        style={{ color: '#10b981', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}
-                                    >
-                                        Registra tu Junta aquí
-                                    </span>
-                                </>
-                            )}
-                        </p>
+                        {role === 'vecino' && (
+                            <p style={{ textAlign: 'center', fontSize: '14px', marginTop: '20px', color: '#64748b' }}>
+                                ¿No tienes una cuenta?{' '}
+                                <span 
+                                    onClick={() => { setIsLogin(false); setErrorMessage(''); }}
+                                    style={{ color: '#2563eb', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}
+                                >
+                                    Regístrate aquí
+                                </span>
+                            </p>
+                        )}
                     </form>
                 ) : (
                     /* REGISTRATION FORMS */
@@ -1363,8 +1369,8 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                 lineHeight: '1.5'
             }}>
                 💡 <strong>Operadores de Juntas de Vecinos:</strong><br />
-                • <strong>JJVV N° 19 Universidad:</strong> <code>jvuniversidad19@gmail.com</code> / contraseña: <code>junta</code><br />
-                • <strong>Unión Comunal Ñuñoa:</strong> <code>unioncomunalnunoa@gmail.com</code> / contraseña: <code>junta</code>
+                • <strong>JJVV N° 19 Universidad:</strong> <code>jvuniversidad19@gmail.com</code> / contraseña: <code>junta1</code><br />
+                • <strong>Unión Comunal Ñuñoa:</strong> <code>unioncomunalnunoa@gmail.com</code> / contraseña: <code>junta2</code>
             </div>
         </div>
     );

@@ -427,7 +427,10 @@ function App() {
           gap: '14px' 
         }}>
           <span style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: '500' }}>
-            👤 {session.nombre}
+            👤 {session.role === 'junta'
+                  ? (session.idJunta === 'unionComunal' ? 'Operador Unión Comunal' : 'Operador JJVV 19')
+                  : session.nombre
+               }
           </span>
           <button
             onClick={handleLogout}

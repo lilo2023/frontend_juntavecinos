@@ -266,6 +266,7 @@ export default function FormularioSolicitud(props) {
         // ESTRUCTURA DEL OBJETO FINAL CON LINKS DE INTERNET
         // ==========================================
         const datosParaBackend = {
+            idJunta: infoJunta.id || 'jjvv19',
             nombre: formData.nombre,
             rut: formData.rut,
             correo: formData.email,

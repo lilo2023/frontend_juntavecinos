@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function MisSolicitudes({ solicitudes, onVerDetalle, onNuevaSolicitud, onEditarSolicitud }) {
+export default function MisSolicitudes({ solicitudes, cargando, onVerDetalle, onNuevaSolicitud, onEditarSolicitud }) {
     return (
         <div style={{
             maxWidth: '900px',
@@ -47,7 +47,40 @@ export default function MisSolicitudes({ solicitudes, onVerDetalle, onNuevaSolic
                 </button>
             </div>
 
-            {solicitudes.length === 0 ? (
+            {cargando ? (
+                <div style={{
+                    textAlign: 'center',
+                    padding: '60px 20px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '12px',
+                    border: '1px solid #eff6ff',
+                    color: '#64748b'
+                }}>
+                    <span style={{
+                        width: '32px',
+                        height: '32px',
+                        border: '4px solid #e2e8f0',
+                        borderTop: '4px solid #2563eb',
+                        borderRadius: '50%',
+                        display: 'inline-block',
+                        boxSizing: 'border-box',
+                        animation: 'listSpin 0.8s linear infinite',
+                        marginBottom: '16px'
+                    }} />
+                    <p style={{ fontSize: '16px', fontWeight: '600', margin: '0 0 4px 0', color: '#1e3a8a' }}>
+                        Cargando tus solicitudes...
+                    </p>
+                    <p style={{ fontSize: '13px', margin: 0, color: '#94a3b8' }}>
+                        Consultando estado en tiempo real...
+                    </p>
+                    <style>{`
+                        @keyframes listSpin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                        }
+                    `}</style>
+                </div>
+            ) : solicitudes.length === 0 ? (
                 <div style={{
                     textAlign: 'center',
                     padding: '50px 20px',

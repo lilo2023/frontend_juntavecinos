@@ -494,6 +494,7 @@ function App() {
         {vista === 'mis-solicitudes' && (
           <MisSolicitudes 
             solicitudes={solicitudesFiltradas} 
+            cargando={debeCargar}
             onVerDetalle={(sol) => { setSolicitudActivaToken(sol); setVista('token-view'); }} 
             onNuevaSolicitud={() => { setSolicitudAEditar(null); setVista('vecino'); }} 
             onEditarSolicitud={(sol) => {

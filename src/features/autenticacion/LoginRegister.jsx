@@ -1368,9 +1368,18 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                 color: '#475569',
                 lineHeight: '1.5'
             }}>
-                💡 <strong>Operadores de Juntas de Vecinos:</strong><br />
-                • <strong>JJVV N° 19 Universidad:</strong> <code>jvuniversidad19@gmail.com</code> / contraseña: <code>junta1</code><br />
-                • <strong>Unión Comunal Ñuñoa:</strong> <code>unioncomunalnunoa@gmail.com</code> / contraseña: <code>junta2</code>
+                {role === 'vecino' ? (
+                    <>
+                        💡 <strong>Residente de Prueba:</strong><br />
+                        • <strong>Correo:</strong> <code>danilogodoyd@gmail.com</code> / contraseña: <code>prueba#1</code>
+                    </>
+                ) : (
+                    <>
+                        💡 <strong>Operadores de Juntas de Vecinos:</strong><br />
+                        • <strong>JJVV N° 19 Universidad:</strong> <code>jvuniversidad19@gmail.com</code> / contraseña: <code>junta1</code><br />
+                        • <strong>Unión Comunal Ñuñoa:</strong> <code>unioncomunalnunoa@gmail.com</code> / contraseña: <code>junta2</code>
+                    </>
+                )}
             </div>
         </div>
     );

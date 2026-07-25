@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { juntasDeVecinosNunoa } from './juntasData';
+import { nunoaPolygons, isPointInPolygon } from './nunoaPolygonsData';
 
 // Haversine formula to calculate distance in km between two coordinates
 function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
@@ -14,11 +15,22 @@ function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
     return R * c; // Distancia en km
 }
 
+// Normalizar y limpiar prefijos de dirección para optimizar la geolocalización
+function normalizarDireccion(input) {
+    if (!input) return '';
+    let str = input.trim();
+    // Limpiar prefijos comunes como Avenida, Av., Calle, Pasaje, Pje., etc.
+    str = str.replace(/^(avenida|avda\.?|av\.?|calle|pasaje|pje\.?|n°|#)\s*/i, '');
+    // Limpiar puntos o espacios remanentes al inicio
+    return str.replace(/^[.\s]+/, '').trim();
+}
+
 export default function IdentificadorJunta({ onConfirmarJunta }) {
     const [step, setStep] = useState('inicio'); // inicio, lista, no_conozco, gps_buscando, direccion_buscando, sugerencia, modal_union_comunal
     const [juntaSeleccionada, setJuntaSeleccionada] = useState('');
     const [juntaOriginal, setJuntaOriginal] = useState(null);
     const [direccionInput, setDireccionInput] = useState('');
+    const [comunaInput, setComunaInput] = useState('Ñuñoa');
     const [juntaSugerida, setJuntaSugerida] = useState(null);
     const [distanciaSugerida, setDistanciaSugerida] = useState(0);
     const [errorMsg, setErrorMsg] = useState('');
@@ -159,11 +171,20 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
         );
     };
 
-    // Address Search via Nominatim OpenStreetMap API
+    // Address Search via Nominatim OpenStreetMap API with Comuna validation & POI filtering
     const handleAddressSearch = async (e) => {
         e.preventDefault();
         if (!direccionInput.trim()) {
-            setErrorMsg('Por favor ingresa una dirección.');
+            setErrorMsg('Por favor ingresa una calle y numeración.');
+            return;
+        }
+
+        // Validación inmediata si la comuna seleccionada no es Ñuñoa
+        const comunaNormalizada = (comunaInput || '').trim().toLowerCase();
+        if (comunaNormalizada !== 'ñuñoa' && comunaNormalizada !== 'nunoa') {
+            setErrorMsg('');
+            setStep('fuera_nunoa');
+            setLoading(false);
             return;
         }
 
@@ -172,23 +193,31 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
         setLoading(true);
 
         try {
-            // Append Ñuñoa, Santiago, Chile to guarantee local results in Nominatim
-            const consulta = encodeURIComponent(`${direccionInput}, Ñuñoa, Santiago, Chile`);
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${consulta}`, {
-                headers: {
-                    'Accept-Language': 'es'
-                }
-            });
-            const data = await response.json();
+            const direccionLimpia = normalizarDireccion(direccionInput);
 
-            if (data && data.length > 0) {
-                const searchLat = parseFloat(data[0].lat);
-                const searchLng = parseFloat(data[0].lon);
-                console.log(`OSM Geocoding: ${data[0].display_name} -> Lat ${searchLat}, Lng ${searchLng}`);
+            // 1. Búsqueda acotada dentro del polígono geográfico de Ñuñoa con detalles de dirección
+            const consultaNunoa = encodeURIComponent(`${direccionLimpia}, Ñuñoa, Santiago, Chile`);
+            const viewbox = '-70.635,-33.435,-70.565,-33.475';
+
+            let response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&viewbox=${viewbox}&bounded=1&q=${consultaNunoa}`, {
+                headers: { 'Accept-Language': 'es' }
+            });
+            let data = await response.json();
+
+            // Filtrar POIs o locales comerciales que no representen calles o casas (ej. Librería Brasil)
+            let itemValido = (data || []).find(item => {
+                const isPOI = ['shop', 'amenity', 'commercial', 'tourism', 'leisure'].includes(item.class);
+                return !isPOI;
+            });
+
+            if (itemValido) {
+                const searchLat = parseFloat(itemValido.lat);
+                const searchLng = parseFloat(itemValido.lon);
+                console.log(`OSM Geocoding: ${itemValido.display_name} -> Lat ${searchLat}, Lng ${searchLng}`);
                 procesarUbicacionYEncontrarMasCercana(searchLat, searchLng);
             } else {
-                setErrorMsg('No pudimos localizar la dirección. Prueba ingresando calle y número, ej: "Avenida Grecia 3348".');
-                setStep('no_conozco');
+                // Si la calle no existe en Ñuñoa (ej. Matucana 100, Ahumada 100), desplegar aviso de fuera de Ñuñoa
+                setStep('fuera_nunoa');
                 setLoading(false);
             }
         } catch (error) {
@@ -199,8 +228,33 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
         }
     };
 
-    // Match coordinate to the closest JVV sede
+    // Match coordinate to official polygon boundary or fallback to closest JVV sede
     const procesarUbicacionYEncontrarMasCercana = (lat, lng) => {
+        let juntaEncontrada = null;
+
+        // 1. Evaluación por polígono territorial oficial de Ñuñoa (Point-in-Polygon)
+        for (const polyObj of nunoaPolygons) {
+            if (polyObj.idJunta && isPointInPolygon(lat, lng, polyObj.polygon)) {
+                const jvvObj = juntasDeVecinosNunoa.find(j => j.id === polyObj.idJunta);
+                if (jvvObj) {
+                    juntaEncontrada = jvvObj;
+                    console.log(`🎯 Coordenada (${lat}, ${lng}) dentro del polígono territorial oficial: ${polyObj.name} (${jvvObj.name})`);
+                    break;
+                }
+            }
+        }
+
+        // 2. Si la coordenada cayó dentro de un polígono territorial oficial
+        if (juntaEncontrada) {
+            const dSede = calcularDistanciaHaversine(lat, lng, juntaEncontrada.lat, juntaEncontrada.lng);
+            setJuntaSugerida(juntaEncontrada);
+            setDistanciaSugerida(dSede);
+            setStep('sugerencia');
+            setLoading(false);
+            return;
+        }
+
+        // 3. Fallback: Si no cayó dentro de ningún polígono (ej. fronteras o exteriores)
         let minimaDistancia = Infinity;
         let juntaMasCercana = null;
 
@@ -214,7 +268,12 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
 
         setJuntaSugerida(juntaMasCercana);
         setDistanciaSugerida(minimaDistancia);
-        setStep('sugerencia');
+
+        if (minimaDistancia > 2.0) {
+            setStep('fuera_nunoa');
+        } else {
+            setStep('sugerencia');
+        }
         setLoading(false);
     };
 
@@ -390,31 +449,65 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
 
                         {/* Address Form */}
                         <form onSubmit={handleAddressSearch} style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
-                            <label style={{ fontSize: '14px', fontWeight: '600', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                            <label style={{ fontSize: '14px', fontWeight: '600', color: '#334155', display: 'block', marginBottom: '8px' }}>
                                 Buscar por Dirección Manual:
                             </label>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <input
-                                    type="text"
-                                    placeholder="Ej: Avenida Grecia 3348"
-                                    value={direccionInput}
-                                    onChange={(e) => setDireccionInput(e.target.value)}
-                                    style={{
-                                        flex: 1,
-                                        padding: '12px',
-                                        borderRadius: '10px',
-                                        border: '1px solid #cbd5e1',
-                                        fontSize: '15px',
-                                        outline: 'none',
-                                        fontFamily: "'Outfit', sans-serif"
-                                    }}
-                                />
-                                <button type="submit" style={{ ...buttonPrimary, width: 'auto', padding: '12px 20px' }}>
-                                    🔍 Buscar
-                                </button>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                                <div>
+                                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', textAlign: 'left' }}>
+                                        Calle y Número:
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Ej: Suecia 2655"
+                                        value={direccionInput}
+                                        onChange={(e) => setDireccionInput(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            borderRadius: '10px',
+                                            border: '1px solid #cbd5e1',
+                                            fontSize: '14px',
+                                            outline: 'none',
+                                            boxSizing: 'border-box',
+                                            fontFamily: "'Outfit', sans-serif"
+                                        }}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', textAlign: 'left' }}>
+                                        Comuna:
+                                    </label>
+                                    <select
+                                        value={comunaInput}
+                                        onChange={(e) => setComunaInput(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            borderRadius: '10px',
+                                            border: '1px solid #cbd5e1',
+                                            fontSize: '14px',
+                                            outline: 'none',
+                                            backgroundColor: '#ffffff',
+                                            boxSizing: 'border-box',
+                                            fontFamily: "'Outfit', sans-serif",
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <option value="Ñuñoa">Ñuñoa</option>
+                                        <option value="Otra Comuna">Otra Comuna (Fuera de Ñuñoa)</option>
+                                    </select>
+                                </div>
                             </div>
-                            <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginTop: '6px' }}>
-                                Ingresa la calle y numeración de tu residencia en Ñuñoa.
+
+                            <button type="submit" style={{ ...buttonPrimary, width: '100%', padding: '12px 20px' }}>
+                                🔍 Buscar Mi Junta de Vecinos
+                            </button>
+
+                            <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginTop: '8px', textAlign: 'center' }}>
+                                Selecciona tu comuna e ingresa tu calle y número.
                             </span>
                         </form>
 
@@ -592,6 +685,56 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
                             }}
                         >
                             ← Cambiar ubicación o seleccionar otra Junta
+                        </button>
+                    </div>
+                )}
+
+                {/* 7. UMBRAL UBICACION FUERA DE ÑUÑOA */}
+                {step === 'fuera_nunoa' && (
+                    <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                        <span style={{ fontSize: '45px', display: 'block', marginBottom: '12px' }}>📍⚠️</span>
+                        <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#0f172a', marginBottom: '8px' }}>
+                            Ubicación Fuera de la Comuna de Ñuñoa
+                        </h2>
+                        <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '20px' }}>
+                            Control de Límites Territoriales Comunales
+                        </p>
+
+                        <div style={{
+                            backgroundColor: '#fffbeb',
+                            border: '1px solid #fde68a',
+                            borderRadius: '14px',
+                            padding: '20px',
+                            textAlign: 'left',
+                            marginBottom: '24px',
+                            fontSize: '14px',
+                            color: '#92400e',
+                            lineHeight: '1.6'
+                        }}>
+                            <p style={{ margin: '0 0 12px 0' }}>
+                                La dirección o ubicación ingresada se encuentra <strong>fuera del territorio comunal de Ñuñoa</strong>.
+                            </p>
+                            <p style={{ margin: 0, fontWeight: '600', color: '#78350f' }}>
+                                💡 <strong>Nota Importante:</strong> Esta plataforma emite Certificados de Residencia exclusivamente para personas que habiten dentro de la comuna de Ñuñoa.
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={() => { setStep('no_conozco'); setErrorMsg(''); }}
+                            style={{
+                                width: '100%',
+                                backgroundColor: '#2563eb',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '12px',
+                                padding: '14px 20px',
+                                fontSize: '15px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
+                            }}
+                        >
+                            ← Volver atrás e ingresar otra dirección
                         </button>
                     </div>
                 )}

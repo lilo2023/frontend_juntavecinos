@@ -67,8 +67,8 @@ const entidadesPreconfiguradas = {
 
 const getApiUrl = () => {
   return window.location.hostname === 'localhost'
-    ? 'http://localhost:5000/api/residentes'
-    : 'https://backend-junta-vecinos.onrender.com/api/residentes';
+    ? 'http://localhost:5000/api/solicitudes'
+    : 'https://backend-junta-vecinos.onrender.com/api/solicitudes';
 };
 
 function App() {

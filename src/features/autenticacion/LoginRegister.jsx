@@ -118,8 +118,8 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
         setCargando(true);
         const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         const urlEndpoint = isLocalHost
-            ? 'http://localhost:5000/api/residentes/restablecer-password'
-            : 'https://backend-junta-vecinos.onrender.com/api/residentes/restablecer-password';
+            ? 'http://localhost:5000/api/vecinos/restablecer'
+            : 'https://backend-junta-vecinos.onrender.com/api/vecinos/restablecer';
 
         try {
             const resp = await fetch(urlEndpoint, {
@@ -206,7 +206,7 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                     try {
                         const localController = new AbortController();
                         const localTimeout = setTimeout(() => localController.abort(), 3000);
-                        respBD = await fetch('http://localhost:5000/api/residentes/login', {
+                        respBD = await fetch('http://localhost:5000/api/vecinos/login', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ correo: inputEmail, password: inputPass }),
@@ -214,7 +214,7 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                         });
                         clearTimeout(localTimeout);
                     } catch (e) {
-                        respBD = await fetch('https://backend-junta-vecinos.onrender.com/api/residentes/login', {
+                        respBD = await fetch('https://backend-junta-vecinos.onrender.com/api/vecinos/login', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ correo: inputEmail, password: inputPass })
@@ -222,7 +222,7 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                     }
                 } else {
                     // En GitHub Pages / Producción: consulta directa a Render (HTTPS)
-                    respBD = await fetch('https://backend-junta-vecinos.onrender.com/api/residentes/login', {
+                    respBD = await fetch('https://backend-junta-vecinos.onrender.com/api/vecinos/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ correo: inputEmail, password: inputPass })

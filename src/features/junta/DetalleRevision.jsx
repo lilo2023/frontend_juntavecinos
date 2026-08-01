@@ -521,15 +521,24 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                                             {/* Coincidencia y semáforo */}
                                             {(() => {
                                                 const idOperador = juntaConfig?.id || solicitud?.idJunta || 'jjvv19';
+                                                const esUnionComunal = idOperador === 'unionComunal' ||
+                                                    (juntaConfig?.nombreJunta || '').toLowerCase().includes('unión comunal') ||
+                                                    (juntaConfig?.nombreJunta || '').toLowerCase().includes('union comunal');
                                                 const esMismaJunta = geoResult.juntaSugerida.id === idOperador;
 
-                                                let colorBg = '#fee2e2';
-                                                let colorBorder = '#fca5a5';
-                                                let colorText = '#991b1b';
-                                                let titulo = '❌ Fuera de Jurisdicción (No Corresponde)';
-                                                let desc = `La dirección ingresada se encuentra asignada al territorio de la ${geoResult.juntaSugerida.name}.`;
+                                                let colorBg = '#fef3c7';
+                                                let colorBorder = '#fde68a';
+                                                let colorText = '#92400e';
+                                                let titulo = '📍 ¿A qué Junta de Vecinos corresponde?';
+                                                let desc = `La dirección ingresada pertenece al territorio asignado a la ${geoResult.juntaSugerida.name}.`;
 
-                                                if (esMismaJunta) {
+                                                if (esUnionComunal) {
+                                                    colorBg = '#eff6ff';
+                                                    colorBorder = '#bfdbfe';
+                                                    colorText = '#1e40af';
+                                                    titulo = '🏛️ Cobertura Comunal (Unión Comunal de Ñuñoa)';
+                                                    desc = `La dirección ingresada pertenece al territorio asignado a la ${geoResult.juntaSugerida.name}.`;
+                                                } else if (esMismaJunta) {
                                                     colorBg = '#dcfce7';
                                                     colorBorder = '#86efac';
                                                     colorText = '#166534';
@@ -558,21 +567,38 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                                                 </div>
                                             </div>
 
-                                            {/* Observación sugerida */}
+                                            {/* Observación sugerida para el operador */}
                                             {(() => {
                                                 const idOperador = juntaConfig?.id || solicitud?.idJunta || 'jjvv19';
+                                                const esUnionComunal = idOperador === 'unionComunal' ||
+                                                    (juntaConfig?.nombreJunta || '').toLowerCase().includes('unión comunal') ||
+                                                    (juntaConfig?.nombreJunta || '').toLowerCase().includes('union comunal');
                                                 const esMismaJunta = geoResult.juntaSugerida.id === idOperador;
-                                                const colorBg = esMismaJunta ? '#eff6ff' : '#fff7ed';
-                                                const colorBorder = esMismaJunta ? '#bfdbfe' : '#ffedd5';
-                                                const colorText = esMismaJunta ? '#1e40af' : '#c2410c';
-                                                const observacion = esMismaJunta
-                                                    ? 'Coincide la Junta de Vecinos seleccionada. Se valida la correspondencia de la dirección.'
-                                                    : 'No coincide la junta de vecinos indicada por el vecino. Se sugiere rechazar por este aspecto.';
+
+                                                let colorBg = '#fff7ed';
+                                                let colorBorder = '#ffedd5';
+                                                let colorText = '#c2410c';
+                                                let colorBar = '#ea580c';
+                                                let observacion = 'No coincide la junta de vecinos específica indicada por el vecino. Se sugiere evaluar antes de aprobar.';
+
+                                                if (esUnionComunal) {
+                                                    colorBg = '#f0fdf4';
+                                                    colorBorder = '#bbf7d0';
+                                                    colorText = '#166534';
+                                                    colorBar = '#16a34a';
+                                                    observacion = 'La Unión Comunal de Juntas de Vecinos de Ñuñoa está habilitada para generar certificados de residencia asociados a domicilios de las distintas uniones vecinales/juntas de vecinos de la comuna de Ñuñoa.';
+                                                } else if (esMismaJunta) {
+                                                    colorBg = '#eff6ff';
+                                                    colorBorder = '#bfdbfe';
+                                                    colorText = '#1e40af';
+                                                    colorBar = '#3b82f6';
+                                                    observacion = 'Coincide la Junta de Vecinos seleccionada. Se valida la correspondencia de la dirección.';
+                                                }
 
                                                 return (
                                                     <div style={{ 
                                                         backgroundColor: colorBg, 
-                                                        borderLeft: `5px solid ${esMismaJunta ? '#3b82f6' : '#ea580c'}`,
+                                                        borderLeft: `5px solid ${colorBar}`,
                                                         borderTop: `1px solid ${colorBorder}`,
                                                         borderBottom: `1px solid ${colorBorder}`,
                                                         borderRight: `1px solid ${colorBorder}`,

@@ -520,15 +520,6 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                                         <>
                                             {/* Coincidencia y semáforo */}
                                             {(() => {
-                                                const esMismaJunta = geoResult.juntaSugerida.id === (juntaConfig?.id || solicitud?.idJunta || 'jjvv19');
-                                                const esTolerable = geoResult.distanciaAOperador && geoResult.distanciaAOperador <= 1.5;
-
-                                                let colorBg = '#fee2e2';
-                                                let colorBorder = '#fca5a5';
-                                                let colorText = '#991b1b';
-                                                let titulo = '❌ Fuera de Jurisdicción (No Corresponde)';
-                                            {/* Coincidencia y semáforo */}
-                                            {(() => {
                                                 const idOperador = juntaConfig?.id || solicitud?.idJunta || 'jjvv19';
                                                 const esMismaJunta = geoResult.juntaSugerida.id === idOperador;
 

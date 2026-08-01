@@ -255,7 +255,8 @@ export default function FormularioSolicitud(props) {
         // ==========================================
         const partesDireccion = formData.direccion.split(',');
 
-        const calleLimpia = partesDireccion[0] ? partesDireccion[0].replace(/(\d+)/g, '').trim() : 'No especificada';
+        let primeraParteLimpia = partesDireccion[0] ? partesDireccion[0].replace(/\b(depto|departamento|dpto|dp|torre|block|piso|oficina|of)\b\.?/gi, '').trim() : '';
+        const calleLimpia = primeraParteLimpia ? primeraParteLimpia.replace(/(\d+)/g, '').trim() : 'No especificada';
         const matchNumero = partesDireccion[0] ? partesDireccion[0].match(/\d+/) : null;
         const numeroLimpio = matchNumero ? matchNumero[0] : 'S/N';
 

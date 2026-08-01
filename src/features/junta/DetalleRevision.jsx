@@ -14,6 +14,28 @@ function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
     return R * c; // Distancia en km
 }
 
+// Limpia la dirección quitando interferencias como "Depto", "Torre", etc., dejando solo Calle y Número para Nominatim
+function limpiarDireccionParaGeocoding(direccionTexto, comunaDefault = 'Ñuñoa') {
+    if (!direccionTexto) return `${comunaDefault}, Chile`;
+
+    let str = direccionTexto.trim();
+
+    // 1. Quitar prefijo o palabras como Depto, Departamento, etc. antes del número de calle
+    str = str.replace(/\b(depto|departamento|dpto|dp|torre|block|piso|oficina|of)\b\.?\s*(?=\d+)/gi, '');
+
+    // 2. Extraer todo hasta el primer número (calle y número principal)
+    const match = str.match(/^(.*?[\d]+)/);
+    let calleYNumero = match ? match[1].trim() : str;
+
+    // Limpiar comas o palabras residuales
+    calleYNumero = calleYNumero.replace(/\b(depto|departamento|dpto|dp|torre|block|piso|oficina|of)\b\.?/gi, '');
+    calleYNumero = calleYNumero.replace(/,/g, '').replace(/\s+/g, ' ').trim();
+
+    // 3. Formatear consulta limpia para Nominatim
+    const comuna = comunaDefault || 'Ñuñoa';
+    return `${calleYNumero}, ${comuna}, Chile`;
+}
+
 export default function DetalleRevision({ solicitud, onActualizarEstado, onVolver, soloLecturaVecino = false, juntaConfig }) {
     const [docActivo, setDocActivo] = useState('cedula');
     const [motivoRechazo, setMotivoRechazo] = useState('');
@@ -44,6 +66,7 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
     // Sincronizar si el padre cambia de vecino
     useEffect(() => {
         setEstadoLocal(solicitud?.estado || 'Pendiente');
+        setYaAprobadoLocal(solicitud?.estado === 'Aprobado');
         // Resetear la verificación si cambia de solicitud
         setGeoResult(null);
         setGeoError(null);
@@ -59,11 +82,11 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
             setGeoError(null);
 
             try {
-                // Limpiar dirección e incluir comuna para Nominatim
+                // Limpiar dirección e incluir comuna para Nominatim (remueve Depto, Torre, etc.)
                 let comuna = config?.comuna || 'Ñuñoa';
-                let query = `${solicitud.direccion}, ${comuna}, Chile`;
+                let query = limpiarDireccionParaGeocoding(solicitud.direccion, comuna);
                 
-                console.log("Validando dirección territorial:", query);
+                console.log("Validando dirección territorial limpia:", query);
                 const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`);
                 const data = await res.json();
 

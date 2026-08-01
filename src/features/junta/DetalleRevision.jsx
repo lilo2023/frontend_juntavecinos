@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { juntasDeVecinosNunoa } from '../vecino/juntasData';
+import { nunoaPolygons, isPointInPolygon } from '../vecino/nunoaPolygonsData';
 
 // Haversine formula to calculate distance in km between two coordinates
 function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
@@ -94,34 +95,38 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                     const lat = parseFloat(data[0].lat);
                     const lng = parseFloat(data[0].lon);
 
-                    // Buscar la JVV más cercana
-                    let minimaDistancia = Infinity;
-                    let juntaMasCercana = null;
-
-                    juntasDeVecinosNunoa.forEach((jvv) => {
-                        const d = calcularDistanciaHaversine(lat, lng, jvv.lat, jvv.lng);
-                        if (d < minimaDistancia) {
-                            minimaDistancia = d;
-                            juntaMasCercana = jvv;
+                    // 1. Evaluación por polígono territorial oficial de Ñuñoa (Point-in-Polygon)
+                    let juntaEncontrada = null;
+                    for (const polyObj of nunoaPolygons) {
+                        if (polyObj.idJunta && isPointInPolygon(lat, lng, polyObj.polygon)) {
+                            const jvvObj = juntasDeVecinosNunoa.find(j => j.id === polyObj.idJunta);
+                            if (jvvObj) {
+                                juntaEncontrada = jvvObj;
+                                console.log(`🎯 Coincidencia por Polígono Territorial: ${polyObj.name} (${jvvObj.name})`);
+                                break;
+                            }
                         }
-                    });
+                    }
 
-                    // Calcular la distancia a la junta del operador actual
-                    // La junta actual tiene un id en el config. (ej: config.id o idJunta de session)
+                    // 2. Fallback a la junta más cercana si no cayó en un polígono delimitado
+                    if (!juntaEncontrada) {
+                        let minimaDistancia = Infinity;
+                        juntasDeVecinosNunoa.forEach((jvv) => {
+                            const d = calcularDistanciaHaversine(lat, lng, jvv.lat, jvv.lng);
+                            if (d < minimaDistancia) {
+                                minimaDistancia = d;
+                                juntaEncontrada = jvv;
+                            }
+                        });
+                    }
+
                     const idJuntaOperador = juntaConfig?.id || solicitud?.idJunta || 'jjvv19';
                     const juntaOperadorData = juntasDeVecinosNunoa.find(j => j.id === idJuntaOperador) || juntasDeVecinosNunoa.find(j => j.id === 'jjvv19');
-                    let distanciaAOperador = null;
-
-                    if (juntaOperadorData) {
-                        distanciaAOperador = calcularDistanciaHaversine(lat, lng, juntaOperadorData.lat, juntaOperadorData.lng);
-                    }
 
                     setGeoResult({
                         lat,
                         lng,
-                        juntaSugerida: juntaMasCercana,
-                        distanciaSugerida: minimaDistancia,
-                        distanciaAOperador,
+                        juntaSugerida: juntaEncontrada,
                         juntaOperadorData,
                         displayName: data[0].display_name
                     });
@@ -522,20 +527,23 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                                                 let colorBorder = '#fca5a5';
                                                 let colorText = '#991b1b';
                                                 let titulo = '❌ Fuera de Jurisdicción (No Corresponde)';
-                                                let desc = `La dirección ingresada se encuentra geográficamente muy alejada de su jurisdicción (${geoResult.distanciaAOperador ? geoResult.distanciaAOperador.toFixed(2) : '?'} km).`;
+                                            {/* Coincidencia y semáforo */}
+                                            {(() => {
+                                                const idOperador = juntaConfig?.id || solicitud?.idJunta || 'jjvv19';
+                                                const esMismaJunta = geoResult.juntaSugerida.id === idOperador;
+
+                                                let colorBg = '#fee2e2';
+                                                let colorBorder = '#fca5a5';
+                                                let colorText = '#991b1b';
+                                                let titulo = '❌ Fuera de Jurisdicción (No Corresponde)';
+                                                let desc = `La dirección ingresada se encuentra asignada al territorio de la ${geoResult.juntaSugerida.name}.`;
 
                                                 if (esMismaJunta) {
                                                     colorBg = '#dcfce7';
                                                     colorBorder = '#86efac';
                                                     colorText = '#166534';
                                                     titulo = '✅ Dirección Válida (Corresponde a su JJVV)';
-                                                    desc = 'La dirección ingresada se encuentra en la zona oficial de cobertura asignada a su Junta de Vecinos.';
-                                                } else if (esTolerable) {
-                                                    colorBg = '#fef3c7';
-                                                    colorBorder = '#fde68a';
-                                                    colorText = '#92400e';
-                                                    titulo = '⚠️ Zona de Cobertura Cercana (Tolerancia)';
-                                                    desc = `La dirección ingresada está asignada a otra JVV vecina, pero a sólo ${geoResult.distanciaAOperador ? geoResult.distanciaAOperador.toFixed(2) : '?'} km de su sede.`;
+                                                    desc = 'La dirección ingresada se encuentra dentro del territorio oficial de cobertura asignado a su Junta de Vecinos.';
                                                 }
 
                                                 return (
@@ -549,26 +557,25 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                                             {/* Detalles y comparaciones */}
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '12px' }}>
                                                 <div style={{ padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#fff' }}>
-                                                    <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>📍 Junta Sugerida por GPS:</span>
+                                                    <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>📍 Junta Correspondiente por Polígono:</span>
                                                     <strong style={{ fontSize: '13px', color: '#1e293b' }}>{geoResult.juntaSugerida.name}</strong>
-                                                    <div style={{ color: '#64748b', marginTop: '3px' }}>Sede a {geoResult.distanciaSugerida.toFixed(2)} km</div>
                                                 </div>
 
                                                 <div style={{ padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#fff' }}>
                                                     <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>🏛️ Su Junta (Operador):</span>
                                                     <strong style={{ fontSize: '13px', color: '#1e293b' }}>{geoResult.juntaOperadorData ? geoResult.juntaOperadorData.name : config.nombreJunta}</strong>
-                                                    <div style={{ color: '#64748b', marginTop: '3px' }}>Sede a {geoResult.distanciaAOperador ? geoResult.distanciaAOperador.toFixed(2) : '?'} km de la dirección</div>
                                                 </div>
                                             </div>
 
                                             {/* Observación sugerida */}
                                             {(() => {
-                                                const esMismaJunta = geoResult.juntaSugerida.id === (juntaConfig?.id || solicitud?.idJunta || 'jjvv19');
+                                                const idOperador = juntaConfig?.id || solicitud?.idJunta || 'jjvv19';
+                                                const esMismaJunta = geoResult.juntaSugerida.id === idOperador;
                                                 const colorBg = esMismaJunta ? '#eff6ff' : '#fff7ed';
                                                 const colorBorder = esMismaJunta ? '#bfdbfe' : '#ffedd5';
                                                 const colorText = esMismaJunta ? '#1e40af' : '#c2410c';
                                                 const observacion = esMismaJunta
-                                                    ? 'Coincide la Junta de Vecinos seleccionada. Se valida la elección de la junta de vecinos.'
+                                                    ? 'Coincide la Junta de Vecinos seleccionada. Se valida la correspondencia de la dirección.'
                                                     : 'No coincide la junta de vecinos indicada por el vecino. Se sugiere rechazar por este aspecto.';
 
                                                 return (
@@ -592,7 +599,7 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                                             })()}
 
                                             <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic', marginTop: '-5px' }}>
-                                                * Geocodificación obtenida en base a la API pública de OpenStreetMap y base de datos territorial de la Ilustre Municipalidad de Ñuñoa.
+                                                * Geocodificación obtenida en base a la API pública de OpenStreetMap y base de datos de polígonos territoriales de la Ilustre Municipalidad de Ñuñoa.
                                             </div>
                                         </>
                                     )}

@@ -490,63 +490,77 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
 
         setCargando(true);
         const emailClean = registerData.email.trim().toLowerCase();
-        const rutClean = registerData.rut.replace(/[^0-9kK]/g, '').toUpperCase();
 
         const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const urlEndpoint = isLocalHost
-            ? 'http://localhost:5000/api/residentes'
-            : 'https://backend-junta-vecinos.onrender.com/api/residentes';
+        const urlVecinos = isLocalHost
+            ? 'http://localhost:5000/api/vecinos'
+            : 'https://backend-junta-vecinos.onrender.com/api/vecinos';
 
         try {
-            // 1. Verificar si el correo o RUT ya existe en MongoDB Atlas
-            const resp = await fetch(urlEndpoint);
+            // 1. Registrar vecino en MongoDB Atlas (colección vecinos)
+            const resp = await fetch(`${urlVecinos}/registro`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: registerData.nombre,
+                    rut: registerData.rut,
+                    correo: emailClean,
+                    password: registerData.password
+                })
+            });
             const data = await resp.json();
-            
-            if (data.ok && Array.isArray(data.data)) {
-                const existe = data.data.some(r => {
-                    const emailBD = (r.correo || '').trim().toLowerCase();
-                    const rutBD = (r.rut || '').replace(/[^0-9kK]/g, '').toUpperCase();
-                    return emailBD === emailClean || rutBD === rutClean;
-                });
-
-                if (existe) {
-                    setCargando(false);
-                    setErrorMessage('Este RUT o correo electrónico ya se encuentra registrado en el sistema. Por favor Inicia Sesión con tu contraseña (si no la recuerdas, puedes usar la opción "¿Olvidaste tu contraseña?" en el Inicio de Sesión).');
-                    setLoginData({ ...loginData, email: registerData.email });
-                    return;
-                }
-            }
-        } catch (err) {
-            console.warn("No se pudo consultar duplicidad en MongoDB, continuando:", err);
-        }
-
-        // 2. Si no existe en BD, guardar cuenta localmente
-        const savedVecinos = JSON.parse(localStorage.getItem('vecinos_cuentas') || '[]');
-        const existsLocal = savedVecinos.some(
-            (v) => v.email.toLowerCase() === emailClean
-        );
-        if (existsLocal || emailClean === 'danilo.godoy@alumnos.unab.cl') {
             setCargando(false);
-            setErrorMessage('Este correo ya se encuentra registrado. Por favor Inicia Sesión con tu contraseña o usa la opción "¿Olvidaste tu contraseña?".');
-            setLoginData({ ...loginData, email: registerData.email });
-            return;
+
+            if (!data.ok) {
+                // RUT o correo duplicado u otro error del servidor
+                setErrorMessage(data.mensaje || 'No se pudo completar el registro. Verifica tus datos e intenta de nuevo.');
+                if (data.esDuplicado) {
+                    setIsLogin(true);
+                    setLoginData({ email: registerData.email, password: '' });
+                }
+                return;
+            }
+
+            // 2. Guardar también en localStorage para el fallback local del login
+            const savedVecinos = JSON.parse(localStorage.getItem('vecinos_cuentas') || '[]');
+            savedVecinos.push({
+                nombre: registerData.nombre,
+                rut: registerData.rut,
+                email: registerData.email,
+                password: registerData.password
+            });
+            localStorage.setItem('vecinos_cuentas', JSON.stringify(savedVecinos));
+
+            alert('¡Registro exitoso! Ya puedes iniciar sesión con tu correo y contraseña.');
+            setIsLogin(true);
+            setLoginData({ email: registerData.email, password: registerData.password });
+            setRegisterData({ nombre: '', rut: '', email: '', password: '', confirmPassword: '' });
+
+        } catch (err) {
+            setCargando(false);
+            console.warn('Error al conectar con backend para registro, guardando localmente:', err);
+
+            // Fallback: guardar solo en localStorage si el backend no responde
+            const savedVecinos = JSON.parse(localStorage.getItem('vecinos_cuentas') || '[]');
+            const existsLocal = savedVecinos.some(v => v.email.toLowerCase() === emailClean);
+            if (existsLocal) {
+                setErrorMessage('Este correo ya se encuentra registrado. Por favor Inicia Sesión.');
+                setLoginData({ email: registerData.email, password: '' });
+                setIsLogin(true);
+                return;
+            }
+            savedVecinos.push({
+                nombre: registerData.nombre,
+                rut: registerData.rut,
+                email: registerData.email,
+                password: registerData.password
+            });
+            localStorage.setItem('vecinos_cuentas', JSON.stringify(savedVecinos));
+            alert('¡Registro exitoso (modo offline)! Ya puedes iniciar sesión.');
+            setIsLogin(true);
+            setLoginData({ email: registerData.email, password: registerData.password });
+            setRegisterData({ nombre: '', rut: '', email: '', password: '', confirmPassword: '' });
         }
-
-        const newVecino = {
-            nombre: registerData.nombre,
-            rut: registerData.rut,
-            email: registerData.email,
-            password: registerData.password
-        };
-
-        savedVecinos.push(newVecino);
-        localStorage.setItem('vecinos_cuentas', JSON.stringify(savedVecinos));
-        setCargando(false);
-
-        alert('¡Registro exitoso! Ya puedes iniciar sesión con tu correo y contraseña.');
-        setIsLogin(true);
-        setLoginData({ email: registerData.email, password: registerData.password });
-        setRegisterData({ nombre: '', rut: '', email: '', password: '', confirmPassword: '' });
     };
 
     const containerStyle = {

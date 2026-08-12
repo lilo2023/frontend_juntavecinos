@@ -75,6 +75,40 @@ npm start
 ## 🔗 Repositorio Backend
 https://github.com/lilo2023/backend-junta-vecinos
 
+##Instructivo de Instalación en Ambiente de Desarrollo
+Guía de despliegue local de la solución MERN (Frontend React + Backend Node.js + MongoDB Atlas).
+1. Prerrequisitos del Sistema (Bloque Superior)
+Node.js: Versión v18+ o v20+ y gestor de paquetes npm (v10+).
+Git: Controlador de versiones.
+Cuentas Cloud: MongoDB Atlas (Base de datos NoSQL) y Cloudinary (Almacenamiento multimedia).
+2. Paso a Paso de Instalación Local (4 Pasos en Cuadrícula / Flujo)
+Paso 1: Clonar Repositorios (GitHub)
+git clone https://github.com/lilo2023/frontend_juntavecinos.git
+git clone https://github.com/lilo2023/backend-junta-vecinos.git
+Paso 2: Configurar y Levantar Backend (Node.js + Express)
+cd backend-junta-vecinos
+npm install
+npm run dev   # Inicia el servidor API REST en http://localhost:5000
+Configurar variables de entorno (.env): PORT=5000, MONGO_URI, CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.
+Paso 3: Configurar y Levantar Frontend (React 19)
+cd sistema-junta-vecinos
+npm install
+npm start     # Inicia la interfaz web en http://localhost:3000
+Paso 4: Verificación y Pruebas Locales
+Abrir el navegador en http://localhost:3000.
+Probar el formulario del vecino y el panel del operador conectándose al backend en puerto 5000 y a MongoDB Atlas.
+3. Arquitectura del Ambiente de Desarrollo (Diagrama Simplificado)
+   [ NAVEGADOR WEB ] ──────> [ FRONTEND REACT ] (Puerto 3000)
+                              │
+                              ▼ (API REST / JSON)
+                          [ BACKEND NODE.JS ] (Puerto 5000)
+                              │
+               ┌──────────────┴──────────────┐
+               ▼                             ▼
+       [ MONGODB ATLAS ]             [ CLOUDINARY ]
+     (Base de Datos Cloud)        (Imágenes y Adjuntos)
+
+
 ## 👨‍💻 Autor
 Danilo Godoy — Proyecto académico UNAB 2026
 

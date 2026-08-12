@@ -75,38 +75,100 @@ npm start
 ## 🔗 Repositorio Backend
 https://github.com/lilo2023/backend-junta-vecinos
 
-##Instructivo de Instalación en Ambiente de Desarrollo
-Guía de despliegue local de la solución MERN (Frontend React + Backend Node.js + MongoDB Atlas).
-1. Prerrequisitos del Sistema (Bloque Superior)
-Node.js: Versión v18+ o v20+ y gestor de paquetes npm (v10+).
-Git: Controlador de versiones.
-Cuentas Cloud: MongoDB Atlas (Base de datos NoSQL) y Cloudinary (Almacenamiento multimedia).
-2. Paso a Paso de Instalación Local (4 Pasos en Cuadrícula / Flujo)
-Paso 1: Clonar Repositorios (GitHub)
+# 🚀 Plataforma Web SaaS de Certificados de Residencia para Juntas de Vecinos (Instructivo de Instalación en Ambiente de Desarrollo)
+
+Solución web para la automatización, estandarización y emisión de certificados de residencia en Juntas de Vecinos de Chile (Comuna de Ñuñoa).
+
+---
+
+## 🛠️ Prerrequisitos
+
+Antes de comenzar, asegúrate de tener instalado en tu equipo:
+
+* **[Node.js](https://nodejs.org/)**: Versión `v18.0.0` o superior.
+* **[npm](https://www.npmjs.com/)**: Versión `v10.0.0` o superior (incluido con Node.js).
+* **[Git](https://git-scm.com/)**: Controlador de versiones.
+* **Cuenta en MongoDB Atlas** (Base de datos NoSQL en la nube).
+* **Cuenta en Cloudinary** (Almacenamiento de evidencias e imágenes).
+
+---
+
+## 📦 Guía de Instalación en Ambiente de Desarrollo
+
+### 1. Clonar los Repositorios
+
+Abre tu terminal y clona los dos repositorios del proyecto:
+
+```bash
+# 1. Clonar Frontend (React SPA)
 git clone https://github.com/lilo2023/frontend_juntavecinos.git
+
+# 2. Clonar Backend (Node.js + Express REST API)
 git clone https://github.com/lilo2023/backend-junta-vecinos.git
-Paso 2: Configurar y Levantar Backend (Node.js + Express)
-cd backend-junta-vecinos
-npm install
-npm run dev   # Inicia el servidor API REST en http://localhost:5000
-Configurar variables de entorno (.env): PORT=5000, MONGO_URI, CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.
-Paso 3: Configurar y Levantar Frontend (React 19)
-cd sistema-junta-vecinos
-npm install
-npm start     # Inicia la interfaz web en http://localhost:3000
-Paso 4: Verificación y Pruebas Locales
-Abrir el navegador en http://localhost:3000.
-Probar el formulario del vecino y el panel del operador conectándose al backend en puerto 5000 y a MongoDB Atlas.
-3. Arquitectura del Ambiente de Desarrollo (Diagrama Simplificado)
-   [ NAVEGADOR WEB ] ──────> [ FRONTEND REACT ] (Puerto 3000)
-                              │
-                              ▼ (API REST / JSON)
-                          [ BACKEND NODE.JS ] (Puerto 5000)
-                              │
-               ┌──────────────┴──────────────┐
-               ▼                             ▼
-       [ MONGODB ATLAS ]             [ CLOUDINARY ]
-     (Base de Datos Cloud)        (Imágenes y Adjuntos)
+```
+
+---
+
+### 2. Configurar y Ejecutar el Backend (`backend-junta-vecinos`)
+
+1. Entra a la carpeta del backend e instala las dependencias:
+   ```bash
+   cd backend-junta-vecinos
+   npm install
+   ```
+
+2. Crea un archivo `.env` en la raíz de `backend-junta-vecinos` con tus credenciales:
+   ```env
+   # Puerto de ejecución local
+   PORT=5000
+
+   # Cadena de conexión a MongoDB Atlas
+   MONGO_URI=mongodb+srv://tu_usuario:tu_password@clusterjunta.mongodb.net/test?retryWrites=true&w=majority
+
+   # Credenciales de Cloudinary (Almacenamiento de evidencias y adjuntos)
+   CLOUDINARY_CLOUD_NAME=tu_cloud_name
+   CLOUDINARY_API_KEY=tu_api_key
+   CLOUDINARY_API_SECRET=tu_api_secret
+   ```
+
+3. Inicia el servidor de desarrollo del backend:
+   ```bash
+   npm run dev
+   ```
+   > 🟢 El servidor backend estará escuchando en: `http://localhost:5000`
+
+---
+
+### 3. Configurar y Ejecutar el Frontend (`sistema-junta-vecinos` / `frontend_juntavecinos`)
+
+1. Entra a la carpeta del frontend e instala las dependencias:
+   ```bash
+   cd ../frontend_juntavecinos
+   npm install
+   ```
+
+2. Inicia la aplicación React en modo desarrollo:
+   ```bash
+   npm start
+   ```
+   > 🟢 La aplicación web se abrirá automáticamente en tu navegador en: `http://localhost:3000`
+
+---
+
+## 🧪 Verificación del Entorno
+
+1. Abre `http://localhost:3000` en tu navegador.
+2. **Prueba Vecino**: Ingresa a "Solicitar Certificado", ingresa una dirección (ej: `Suecia 2655, Ñuñoa`), adjunta archivos de prueba y envía la solicitud.
+3. **Prueba Operador JJVV**: Inicia sesión como operador (`jvuniversidad19@gmail.com` / `junta1` o `unioncomunalnunoa@gmail.com` / `junta2`) y verifica que las solicitudes aparezcan en el panel de revisión.
+
+---
+
+## 💻 Stack Tecnológico (MERN Stack)
+
+* **Frontend**: React 19, JavaScript ES6+, HTML5 Geolocation API, CSS3 Vanilla.
+* **Backend**: Node.js, Express.js REST API.
+* **Base de Datos**: MongoDB Atlas (Mongoose ODM).
+* **Servicios Cloud**: Cloudinary (Almacenamiento de evidencias), Puppeteer (Generación de PDF de Certificados).
 
 
 ## 👨‍💻 Autor

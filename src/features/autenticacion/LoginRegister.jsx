@@ -1172,9 +1172,52 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                             </button>
                         </div>
 
-                        <button type="submit" style={buttonStyle}>
-                            Registrarse y Crear Cuenta
-                        </button>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+                            <button type="submit" style={{ ...buttonStyle, flex: 1 }}>
+                                Registrarse y Crear Cuenta
+                            </button>
+                            <button
+                                type="button"
+                                title="Autocompletar con datos de demostración"
+                                onClick={() => {
+                                    const demoNombre = 'Susana Alejandra Rojas Garrido';
+                                    const demoRut = '13.426.613-9';
+                                    const demoEmail = 'athela@gmail.com';
+                                    const demoPass = 'qwerty';
+                                    setRegisterData({
+                                        nombre: demoNombre,
+                                        rut: demoRut,
+                                        email: demoEmail,
+                                        password: demoPass,
+                                        confirmPassword: demoPass
+                                    });
+                                    setRutError(false);
+                                }}
+                                style={{
+                                    padding: '0',
+                                    width: '52px',
+                                    minWidth: '52px',
+                                    border: 'none',
+                                    borderRadius: '10px',
+                                    fontSize: '20px',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    color: '#ffffff',
+                                    backgroundColor: '#7c3aed',
+                                    boxShadow: '0 4px 12px rgba(124, 58, 237, 0.35)',
+                                    fontFamily: "'Outfit', sans-serif",
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'background-color 0.2s, transform 0.1s',
+                                    marginTop: '10px'
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#6d28d9'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#7c3aed'; e.currentTarget.style.transform = 'scale(1)'; }}
+                            >
+                                A
+                            </button>
+                        </div>
 
                         <p style={{ textAlign: 'center', fontSize: '14px', marginTop: '20px', color: '#64748b' }}>
                             ¿Ya tienes una cuenta?{' '}

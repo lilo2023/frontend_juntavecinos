@@ -666,18 +666,36 @@ export default function FormularioSolicitud(props) {
                     type="submit" 
                     disabled={isSubiendo}
                     style={{ 
-                        background: isSubiendo ? '#6c757d' : '#28a745', 
+                        background: isSubiendo ? '#4a5568' : '#28a745', 
                         color: 'white', 
                         padding: '14px', 
                         border: 'none', 
-                        borderRadius: '4px', 
+                        borderRadius: '6px', 
                         cursor: isSubiendo ? 'not-allowed' : 'pointer', 
                         fontSize: '16px', 
                         fontWeight: 'bold', 
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)' 
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                        transition: 'background-color 0.2s ease'
                     }}
                 >
-                    {isSubiendo ? '⏳ Procesando y subiendo imágenes...' : 'Enviar Solicitud Segura'}
+                    {isSubiendo ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <span style={{
+                                display: 'inline-block',
+                                width: '20px',
+                                height: '20px',
+                                border: '3px solid rgba(255, 255, 255, 0.3)',
+                                borderTopColor: '#ffffff',
+                                borderRadius: '50%',
+                                animation: 'spin 0.8s linear infinite',
+                                boxSizing: 'border-box'
+                            }} />
+                            <span>Procesando y subiendo imágenes...</span>
+                            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                        </div>
+                    ) : (
+                        'Enviar Solicitud Segura'
+                    )}
                 </button>
             </form>
         </div>

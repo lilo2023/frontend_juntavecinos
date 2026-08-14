@@ -410,12 +410,38 @@ export default function FormularioSolicitud(props) {
                     📋 Requisitos para completar tu solicitud:
                 </strong>
                 <p style={{ margin: '6px 0 8px 0', color: '#0284c7' }}>
-                    Para que la directiva valide y apruebe tu Certificado de Residencia, asegúrate de <strong>tener listas en tu dispositivo las siguientes 3 imágenes o documentos (JPG, PNG o PDF)</strong> antes de enviar el formulario:
+                    Para llenar la solicitud de Certificado de Residencia, asegúrate de <strong>tener listas en tu dispositivo las siguientes 3 imágenes o documentos (JPG, PNG o PDF)</strong> antes de enviar el formulario:
                 </p>
                 <ol style={{ margin: '0 0 8px 18px', padding: 0 }}>
-                    <li style={{ marginBottom: '4px' }}>🪪 <strong>1. Cédula de Identidad:</strong> Imagen legible por ambos lados (frente y reverso).</li>
-                    <li style={{ marginBottom: '4px' }}>📄 <strong>2. Comprobante de Domicilio:</strong> Cuenta de servicio (luz, agua, gas, internet), contrato de arriendo o similar a tu nombre.</li>
-                    <li style={{ marginBottom: '4px' }}>💳 <strong>3. Comprobante de Transferencia:</strong> Foto o PDF del comprobante de transferencia por el arancel de <strong>{renderArancel()}</strong> realizado a la cuenta bancaria de la Junta.</li>
+                    <li style={{ marginBottom: '6px' }}>🪪 <strong>1. Cédula de Identidad:</strong> Imagen legible por ambos lados (frente y reverso).</li>
+                    <li style={{ marginBottom: '6px' }}>📄 <strong>2. Comprobante de Domicilio:</strong> Cuenta de servicio (luz, agua, gas, internet), contrato de arriendo o similar a tu nombre.</li>
+                    <li style={{ marginBottom: '6px' }}>
+                        💳 <strong>3. Comprobante de Transferencia:</strong> Foto o PDF del comprobante de transferencia por el arancel de <strong>{renderArancel()}</strong> realizado a la cuenta bancaria de la Junta:
+                        {infoJunta.banco ? (
+                            <div style={{ backgroundColor: '#fff', border: '1px solid #bae6fd', padding: '10px 14px', borderRadius: '8px', marginTop: '8px', marginBottom: '8px', fontSize: '12px', color: '#1e293b', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                <div style={{ fontWeight: 'bold', color: '#0369a1', marginBottom: '6px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    📢 Datos para realizar la Transferencia Bancaria:
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', lineHeight: '1.4' }}>
+                                    <div><strong>Destinatario:</strong> {infoJunta.nombreJunta}</div>
+                                    <div><strong>RUT:</strong> {infoJunta.rutJunta}</div>
+                                    <div><strong>Banco:</strong> <span style={{ color: '#0284c7', fontWeight: 'bold' }}>{infoJunta.banco}</span></div>
+                                    <div><strong>Tipo Cuenta:</strong> {infoJunta.tipoCuenta}</div>
+                                    <div style={{ gridColumn: 'span 2', marginTop: '2px' }}>
+                                        <strong>N° Cuenta:</strong> <span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 'bold', backgroundColor: '#e0f2fe', padding: '2px 6px', borderRadius: '4px', color: '#0369a1' }}>{infoJunta.numeroCuenta}</span>
+                                    </div>
+                                </div>
+                                <div style={{ marginTop: '8px', padding: '6px 10px', backgroundColor: '#fffaf0', border: '1px solid #feebc8', borderRadius: '6px', fontSize: '11px' }}>
+                                    <strong style={{ color: '#dd6b20' }}>📧 Correo destino para el Banco:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#c05621' }}>{infoJunta.emailContacto}</span>
+                                    <span style={{ display: 'block', color: '#718096', fontSize: '10.5px', marginTop: '1px' }}>(Ingrese este correo en su banco para notificar la transferencia automáticamente)</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{ color: '#e53e3e', fontStyle: 'italic', fontSize: '12px', marginTop: '4px' }}>
+                                ⚠️ Datos bancarios pendientes de configuración por la administración.
+                            </div>
+                        )}
+                    </li>
                 </ol>
                 <span style={{ fontSize: '12px', color: '#0369a1', fontWeight: '500' }}>
                     💡 <em>Tip: Si ya tienes las 3 fotos o archivos guardados en tu equipo, completarás la solicitud en menos de 2 minutos.</em>

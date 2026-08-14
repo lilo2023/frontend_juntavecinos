@@ -452,18 +452,38 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                                 </div>
                             )}
 
-                            {/* PESTAÑA 2: DOMICILIO */}
+                            {/* PESTAÑA 2: DOMICILIO (imagen o PDF) */}
                             {docActivo === 'domicilio' && (
                                 <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
                                     <p style={{ fontWeight: 'bold', color: '#64748b', marginBottom: '8px', fontSize: '13px' }}>Evidencia de Domicilio Subida ({solicitud?.tipoDocDomicilio || 'Doc'}):</p>
-                                    {solicitud?.urls?.domicilio || solicitud?.urlDomicilio ? (
-                                        <img
-                                            src={solicitud?.urls?.domicilio || solicitud?.urlDomicilio}
-                                            alt="Documento Domicilio"
-                                            onClick={() => setImagenZoom(solicitud?.urls?.domicilio || solicitud?.urlDomicilio)}
-                                            style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '280px', display: 'block', objectFit: 'contain', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'zoom-in' }}
-                                        />
-                                    ) : (
+                                    {solicitud?.urls?.domicilio || solicitud?.urlDomicilio ? (() => {
+                                        const url = solicitud?.urls?.domicilio || solicitud?.urlDomicilio;
+                                        const esPDF = url?.toLowerCase().includes('.pdf') || url?.toLowerCase().includes('/raw/');
+                                        return esPDF ? (
+                                            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                                                <iframe
+                                                    src={url}
+                                                    title="Documento de Domicilio (PDF)"
+                                                    style={{ width: '100%', height: '320px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                                                />
+                                                <a
+                                                    href={url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    style={{ fontSize: '12px', color: '#2563eb', fontWeight: '600', textDecoration: 'underline' }}
+                                                >
+                                                    📄 Abrir PDF en nueva pestaña
+                                                </a>
+                                            </div>
+                                        ) : (
+                                            <img
+                                                src={url}
+                                                alt="Documento Domicilio"
+                                                onClick={() => setImagenZoom(url)}
+                                                style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '280px', display: 'block', objectFit: 'contain', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'zoom-in' }}
+                                            />
+                                        );
+                                    })() : (
                                         <p style={{ color: '#dc3545', fontSize: '13px' }}>⚠️ No se encontró el enlace del documento de domicilio.</p>
                                     )}
                                 </div>
@@ -654,7 +674,7 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                             <p style={{ margin: 0 }}>
                                 <strong>Dirección ingresada:</strong> <br />
                                 <span style={{ color: '#2b6cb0', fontWeight: 'bold' }}>
-                                    {solicitud.direccion}, {solicitud.comuna || juntaConfig?.comuna || 'Ñuñoa'}
+                                    {solicitud.direccion}
                                 </span>
                             </p>
                             <p style={{ margin: 0, borderTop: '1px dashed #e2e8f0', paddingTop: '6px' }}>

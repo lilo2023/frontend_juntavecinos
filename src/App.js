@@ -152,7 +152,7 @@ function App() {
           rut: sol.rut,
           email: sol.correo,
           direccion: typeof sol.direccion === 'object'
-            ? `${sol.direccion.calle} ${sol.direccion.numero}, ${sol.direccion.comuna}`
+            ? `${sol.direccion.calle} ${sol.direccion.numero}${sol.direccion.torre ? ', ' + sol.direccion.torre : ''}${sol.direccion.departamento ? ', Depto ' + sol.direccion.departamento : ''}, ${sol.direccion.comuna}`
             : sol.direccion,
           calidadResidente: sol.tipoResidente || 'Propietario',
           destino: sol.destino || 'Trámites Generales',

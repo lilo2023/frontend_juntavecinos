@@ -142,19 +142,22 @@ export default function FormularioSolicitud(props) {
 
         try {
             const baseUrl = process.env.PUBLIC_URL || '';
-            const [resCedula, resDomicilio, resPago] = await Promise.all([
+
+            // Cédula y comprobante de pago son imágenes JPG
+            const [resCedula, resPago] = await Promise.all([
                 fetch(`${baseUrl}/demo_cedula.jpg`),
-                fetch(`${baseUrl}/demo_domicilio.png`),
                 fetch(`${baseUrl}/demo_pago.jpg`)
             ]);
 
             const blobCedula = await resCedula.blob();
-            const blobDomicilio = await resDomicilio.blob();
             const blobPago = await resPago.blob();
-
             const fileCedula = new File([blobCedula], 'cedula_danilo.jpg', { type: 'image/jpeg' });
-            const fileDomicilio = new File([blobDomicilio], 'certificado_afp_cuprum.png', { type: 'image/png' });
             const filePago = new File([blobPago], 'comprobante_pago_itau.jpg', { type: 'image/jpeg' });
+
+            // El comprobante de domicilio es un PDF
+            const resDomicilio = await fetch(`${baseUrl}/demo_domicilio.pdf`);
+            const blobDomicilio = await resDomicilio.blob();
+            const fileDomicilio = new File([blobDomicilio], 'certificado_afp_cuprum.pdf', { type: 'application/pdf' });
 
             setArchivosRaw({
                 cedula: fileCedula,
@@ -164,7 +167,8 @@ export default function FormularioSolicitud(props) {
 
             setUrlsTemporales({
                 cedula: URL.createObjectURL(fileCedula),
-                domicilio: URL.createObjectURL(fileDomicilio),
+                // Para PDF: usar la URL directa al archivo público para que el visor PDF del navegador lo abra correctamente
+                domicilio: `${baseUrl}/demo_domicilio.pdf`,
                 comprobantePago: URL.createObjectURL(filePago)
             });
         } catch (err) {

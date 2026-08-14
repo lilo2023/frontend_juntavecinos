@@ -459,23 +459,48 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                                     {solicitud?.urls?.domicilio || solicitud?.urlDomicilio ? (() => {
                                         const url = solicitud?.urls?.domicilio || solicitud?.urlDomicilio;
                                         const esPDF = url?.toLowerCase().includes('.pdf') || url?.toLowerCase().includes('/raw/');
-                                        return esPDF ? (
-                                            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                                                <iframe
-                                                    src={url}
-                                                    title="Documento de Domicilio (PDF)"
-                                                    style={{ width: '100%', height: '320px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
-                                                />
-                                                <a
-                                                    href={url}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    style={{ fontSize: '12px', color: '#2563eb', fontWeight: '600', textDecoration: 'underline' }}
-                                                >
-                                                    📄 Abrir PDF en nueva pestaña
-                                                </a>
-                                            </div>
-                                        ) : (
+
+                                        if (esPDF) {
+                                            // Convertir PDF de Cloudinary a imagen (primera página) usando transformación pg_1
+                                            let previewImgUrl = null;
+                                            if (url.includes('cloudinary.com')) {
+                                                previewImgUrl = url
+                                                    .replace('/raw/upload/', '/image/upload/pg_1/')
+                                                    .replace('/image/upload/', '/image/upload/pg_1/')
+                                                    // Evitar duplicar pg_1 si ya está
+                                                    .replace('/image/upload/pg_1/pg_1/', '/image/upload/pg_1/')
+                                                    .replace(/\.pdf$/i, '.jpg');
+                                            }
+
+                                            return (
+                                                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                                                    {previewImgUrl ? (
+                                                        <img
+                                                            src={previewImgUrl}
+                                                            alt="Primera página del documento PDF"
+                                                            onClick={() => setImagenZoom(previewImgUrl)}
+                                                            style={{ maxWidth: '100%', maxHeight: '280px', objectFit: 'contain', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'zoom-in', border: '1px solid #e2e8f0' }}
+                                                            onError={(e) => { e.target.style.display = 'none'; }}
+                                                        />
+                                                    ) : (
+                                                        <div style={{ padding: '30px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', textAlign: 'center' }}>
+                                                            <span style={{ fontSize: '40px' }}>📄</span>
+                                                            <p style={{ color: '#64748b', fontSize: '13px', margin: '8px 0 0 0' }}>Documento PDF adjunto</p>
+                                                        </div>
+                                                    )}
+                                                    <a
+                                                        href={url}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#2563eb', color: '#fff', borderRadius: '6px', fontWeight: '600', fontSize: '13px', textDecoration: 'none', boxShadow: '0 2px 6px rgba(37,99,235,0.3)' }}
+                                                    >
+                                                        📄 Abrir PDF completo en nueva pestaña
+                                                    </a>
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
                                             <img
                                                 src={url}
                                                 alt="Documento Domicilio"

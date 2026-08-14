@@ -126,29 +126,51 @@ export default function FormularioSolicitud(props) {
         }
     }, [props.solicitudAEditar, infoJunta]);
 
-    const cargarDatosDemo = () => {
-        setFormData({
-            nombre: 'Danilo Marcelo Godoy Díaz',
-            rut: '10.703.900-7',
-            email: 'danilo.godoy@alumnos.unab.cl',
-            direccion: 'Avenida Grecia 3348, Torre A, Departamento 1713',
-            comuna: infoJunta.comuna || 'Ñuñoa',
-            calidadResidente: 'Familiar del propietario',
-            destino: 'Universidad Andrés Bello',
-            montoPago: infoJunta.valorCertificado || '0',
-            tipoDocDomicilio: 'Boleta de Servicio'
-        });
-        setRutError(false);
-
-        // Simulamos que cargamos los archivos inyectando un objeto Blob simulado
-        // para pasar las validaciones del submit sin romper el flujo asíncrono
-        const blobSimulado = new Blob(["demo"], { type: "image/png" });
-        setArchivosRaw({
-            cedula: blobSimulado,
-            domicilio: blobSimulado,
-            comprobantePago: blobSimulado
+    const cargarDatosDemo = async () => {
+        setFormData({
+            nombre: 'Danilo Marcelo Godoy Díaz',
+            rut: '10.703.900-7',
+            email: 'danilogodoyd@gmail.com',
+            direccion: 'Avenida Grecia 3348, Depto 1713',
+            comuna: infoJunta.comuna || 'Ñuñoa',
+            calidadResidente: 'Propietario',
+            destino: 'Universidad Andrés Bello',
+            montoPago: infoJunta.valorCertificado || '1000',
+            tipoDocDomicilio: 'Certificado AFP'
         });
-    };
+        setRutError(false);
+
+        try {
+            const baseUrl = process.env.PUBLIC_URL || '';
+            const [resCedula, resDomicilio, resPago] = await Promise.all([
+                fetch(`${baseUrl}/demo_cedula.jpg`),
+                fetch(`${baseUrl}/demo_domicilio.png`),
+                fetch(`${baseUrl}/demo_pago.jpg`)
+            ]);
+
+            const blobCedula = await resCedula.blob();
+            const blobDomicilio = await resDomicilio.blob();
+            const blobPago = await resPago.blob();
+
+            const fileCedula = new File([blobCedula], 'cedula_danilo.jpg', { type: 'image/jpeg' });
+            const fileDomicilio = new File([blobDomicilio], 'certificado_afp_cuprum.png', { type: 'image/png' });
+            const filePago = new File([blobPago], 'comprobante_pago_itau.jpg', { type: 'image/jpeg' });
+
+            setArchivosRaw({
+                cedula: fileCedula,
+                domicilio: fileDomicilio,
+                comprobantePago: filePago
+            });
+
+            setUrlsTemporales({
+                cedula: URL.createObjectURL(fileCedula),
+                domicilio: URL.createObjectURL(fileDomicilio),
+                comprobantePago: URL.createObjectURL(filePago)
+            });
+        } catch (err) {
+            console.error("Error al cargar documentos demo:", err);
+        }
+    };
 
     const subirACloudinary = async (file) => {
         if (!file) return "";
@@ -347,12 +369,12 @@ export default function FormularioSolicitud(props) {
                 alert(`⚠️ Atención: ${resultado.msg || 'Error al guardar los datos'}`);
             }
         } catch (error) {
-            console.error("Error al conectar con la API:", error);
-            alert("❌ No se pudo establecer conexión con el servidor de la Junta de Vecinos. Asegúrese de que el backend esté encendido.");
-        } finally {
-            setIsSubiendo(false); // Liberamos el formulario
-        }
-    };
+            console.error("Error al conectar con la API:", error);
+            alert("❌ No se pudo establecer conexión con el servidor de la Junta de Vecinos. Asegúrese de que el backend esté encendido.");
+        } finally {
+            setIsSubiendo(false); // Liberamos el formulario
+        }
+    };
 
     const renderArancel = () => {
         const valor = parseInt(infoJunta.valorCertificado);
@@ -362,17 +384,6 @@ export default function FormularioSolicitud(props) {
 
     return (
         <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', fontFamily: 'Arial' }}>
-
-            <div style={{ textAlign: 'right', marginBottom: '10px' }}>
-                <button
-                    type="button"
-                    onClick={cargarDatosDemo}
-                    disabled={isSubiendo}
-                    style={{ background: '#e2e8f0', color: '#4a5568', padding: '6px 12px', border: '1px dashed #cbd5e0', borderRadius: '4px', cursor: isSubiendo ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                >
-                    ⚡ Autocompletar datos de Danilo (Prueba)
-                </button>
-            </div>
 
             <h2 style={{ color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px', fontSize: '19px' }}>
                 {infoJunta.nombreJunta ? `Portal Digital: ${infoJunta.nombreJunta}` : '✨ Portal de Residente'}
@@ -411,7 +422,38 @@ export default function FormularioSolicitud(props) {
 
                 {/* SECCIÓN 1: IDENTIFICACIÓN */}
                 <div>
-                    <h3 style={{ fontSize: '15px', color: '#34495e', margin: '0 0 10px 0' }}>1. Identificación y Domicilio</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <h3 style={{ fontSize: '15px', color: '#34495e', margin: 0 }}>1. Identificación y Domicilio</h3>
+                        <button
+                            type="button"
+                            title="Autocompletar datos de Danilo y adjuntar documentos demo"
+                            onClick={cargarDatosDemo}
+                            disabled={isSubiendo}
+                            style={{
+                                width: '36px',
+                                height: '36px',
+                                minWidth: '36px',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontSize: '18px',
+                                fontWeight: '800',
+                                cursor: isSubiendo ? 'not-allowed' : 'pointer',
+                                color: '#ffffff',
+                                backgroundColor: '#7c3aed',
+                                boxShadow: '0 4px 10px rgba(124, 58, 237, 0.35)',
+                                fontFamily: "'Outfit', sans-serif",
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'background-color 0.2s, transform 0.1s'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#6d28d9'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#7c3aed'; e.currentTarget.style.transform = 'scale(1)'; }}
+                        >
+                            A
+                        </button>
+                    </div>
+
                     <label style={{ fontWeight: '500', fontSize: '14px' }}>Nombre Completo:</label>
                     <input
                         type="text" name="nombre" value={formData.nombre} onChange={handleInputChange}
@@ -489,6 +531,12 @@ export default function FormularioSolicitud(props) {
                             disabled={isSubiendo}
                             style={{ width: '100%', fontSize: '13px' }}
                         />
+                        {urlsTemporales.cedula && (
+                            <div style={{ marginTop: '6px', fontSize: '12px', color: '#16a34a', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>✅ Cédula de Identidad cargada</span>
+                                <a href={urlsTemporales.cedula} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontSize: '11px', textDecoration: 'underline' }}>(Ver vista previa)</a>
+                            </div>
+                        )}
                     </div>
 
                     <div style={{ backgroundColor: '#f8f9fa', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', marginTop: '10px' }}>
@@ -521,6 +569,12 @@ export default function FormularioSolicitud(props) {
                                 style={{ flex: 1, fontSize: '13px' }}
                             />
                         </div>
+                        {urlsTemporales.domicilio && (
+                            <div style={{ marginTop: '6px', fontSize: '12px', color: '#16a34a', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>✅ Comprobante de Domicilio (AFP Cuprum) cargado</span>
+                                <a href={urlsTemporales.domicilio} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontSize: '11px', textDecoration: 'underline' }}>(Ver vista previa)</a>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -570,6 +624,12 @@ export default function FormularioSolicitud(props) {
                         required={!props.solicitudAEditar && !archivosRaw.comprobantePago} 
                         disabled={isSubiendo}
                     />
+                    {urlsTemporales.comprobantePago && (
+                        <div style={{ marginTop: '6px', fontSize: '12px', color: '#16a34a', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>✅ Comprobante de Transferencia (Itaú) cargado</span>
+                            <a href={urlsTemporales.comprobantePago} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontSize: '11px', textDecoration: 'underline' }}>(Ver vista previa)</a>
+                        </div>
+                    )}
                 </div>
 
                 <button 

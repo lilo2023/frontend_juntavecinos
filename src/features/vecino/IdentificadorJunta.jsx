@@ -15,14 +15,24 @@ function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
     return R * c; // Distancia en km
 }
 
-// Normalizar y limpiar prefijos de dirección para optimizar la geolocalización
+// Normalizar y limpiar prefijos de dirección e interferencias de departamento/torre/block para optimizar la geolocalización
 function normalizarDireccion(input) {
     if (!input) return '';
     let str = input.trim();
-    // Limpiar prefijos comunes como Avenida, Av., Calle, Pasaje, Pje., etc.
+
+    // 1. Limpiar prefijos comunes como Avenida, Av., Calle, Pasaje, Pje., etc.
     str = str.replace(/^(avenida|avda\.?|av\.?|calle|pasaje|pje\.?|n°|#)\s*/i, '');
-    // Limpiar puntos o espacios remanentes al inicio
-    return str.replace(/^[.\s]+/, '').trim();
+
+    // 2. Limpiar sufijos e interferencias de departamento, torre, block, piso, oficina, etc.
+    str = str.replace(/,?\s*\b(depto|departamento|dpto|dp|torre|block|piso|oficina|of)\b\.?\s*\w*/gi, '');
+
+    // 3. Extraer solo Calle y Número principal si viene seguido de números de departamento o letras extra sueltas
+    const match = str.match(/^([a-záéíóúñA-ZÁÉÍÓÚÑ0-9\s\.\'-]+?\s+\d+)/);
+    if (match) {
+        return match[1].trim();
+    }
+
+    return str.replace(/^[.\s]+/, '').replace(/\s+/g, ' ').trim();
 }
 
 export default function IdentificadorJunta({ onConfirmarJunta }) {
@@ -204,11 +214,22 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
             });
             let data = await response.json();
 
+            // Si la búsqueda acotada no trae resultados, probar búsqueda amplia con comuna Ñuñoa
+            if (!data || data.length === 0) {
+                const responseFallback = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&addressdetails=1&q=${encodeURIComponent(`${direccionLimpia}, Ñuñoa, Chile`)}`, {
+                    headers: { 'Accept-Language': 'es' }
+                });
+                data = await responseFallback.json();
+            }
+
             // Filtrar POIs o locales comerciales que no representen calles o casas (ej. Librería Brasil)
             let itemValido = (data || []).find(item => {
                 const isPOI = ['shop', 'amenity', 'commercial', 'tourism', 'leisure'].includes(item.class);
                 return !isPOI;
             });
+            if (!itemValido && data && data.length > 0) {
+                itemValido = data[0];
+            }
 
             if (itemValido) {
                 const searchLat = parseFloat(itemValido.lat);

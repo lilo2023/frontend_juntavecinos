@@ -35,11 +35,26 @@ organizaciones vecinales (multi-tenant) desde una única plataforma.
 - Personalización de cabecera, pie de firma y datos bancarios
 - Soporte para múltiples juntas de vecinos simultáneas
 
-## 🛠️ Tecnologías Utilizadas
-- **React 19** — Biblioteca de interfaz de usuario
-- **JavaScript (ES6+)** — Lenguaje principal
-- **GitHub Pages** — Hosting del frontend
-- **Cloudinary** — Almacenamiento de imágenes y PDFs en la nube
+## 🛠️ Stack Tecnológico y Herramientas
+
+| Categoría | Tecnología / Herramienta | Rol / Tipo | Propósito en el Sistema |
+| --- | --- | --- | --- |
+| **Frontend (Cliente)** | **React 19** | Biblioteca UI (SPA) | Construcción de la interfaz de usuario interactiva y reactiva. |
+| | **JavaScript (ES6+)** | Lenguaje Principal | Lógica de negocio en cliente y consumo de APIs REST. |
+| | **HTML5 & CSS3 Vanilla** | Estructura y Estilos | Diseño responsivo, accesibilidad y animaciones sin librerías pesadas. |
+| | **HTML5 Geolocation API** | Servicio del Navegador | Captura de coordenadas GPS reales en dispositivos móviles/PC. |
+| | **OpenStreetMap / Nominatim** | API de Mapas Pública | Geocodificación y búsqueda de direcciones de vecinos. |
+| **Backend (Servidor)** | **Node.js** | Entorno de Ejecución | Motor de ejecución JavaScript en el servidor. |
+| | **Express.js** | Framework REST | Construcción de la API RESTful, rutas y middlewares. |
+| | **Puppeteer** | Navegador Headless | Conversión y generación de Certificados de Residencia en PDF. |
+| | **Nodemailer** | Servicio SMTP | Envío de correos de notificación y módulo de soporte 2FA. |
+| **Base de Datos** | **MongoDB Atlas** | Base de Datos NoSQL | Almacenamiento persistente multi-tenant distribuido en la nube. |
+| | **Mongoose** | ODM (Mapeador de Objetos) | Definición de esquemas, validaciones y consultas a MongoDB. |
+| **Servicios Cloud** | **Cloudinary API** | Almacenamiento Cloud | Almacenamiento seguro, transformación y previsualización de evidencias/PDFs. |
+| **Calidad y Testing** | **Jest & Supertest** | Framework de Pruebas | Suite automatizada de pruebas de integración y medición de métricas. |
+| **Infraestructura / DevOps**| **GitHub Pages** | Hosting Frontend | Publicación automática del cliente React vía CI/CD (GitHub Actions). |
+| | **Render** | Hosting Backend | Despliegue PaaS del servidor API REST en la nube. |
+| | **Git & GitHub** | Control de Versiones | Gestión de código fuente y colaboración. |
 
 ## 📁 Estructura del Proyecto
 
@@ -217,12 +232,7 @@ git clone https://github.com/lilo2023/backend-junta-vecinos.git
 
 ---
 
-## 💻 Stack Tecnológico (MERN Stack)
 
-* **Frontend**: React 19, JavaScript ES6+, HTML5 Geolocation API, CSS3 Vanilla.
-* **Backend**: Node.js, Express.js REST API.
-* **Base de Datos**: MongoDB Atlas (Mongoose ODM).
-* **Servicios Cloud**: Cloudinary (Almacenamiento de evidencias), Puppeteer (Generación de PDF de Certificados).
 
 
 ## 👨‍💻 Autor

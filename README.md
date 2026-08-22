@@ -55,6 +55,15 @@ organizaciones vecinales (multi-tenant) desde una única plataforma.
 | **Infraestructura / DevOps**| **GitHub Pages** | Hosting Frontend | Publicación automática del cliente React vía CI/CD (GitHub Actions). |
 | | **Render** | Hosting Backend | Despliegue PaaS del servidor API REST en la nube. |
 | | **Git & GitHub** | Control de Versiones | Gestión de código fuente y colaboración. |
+## 🌐 APIs Utilizadas
+
+| API / Servicio | Categoría | Descripción y Propósito |
+| --- | --- | --- |
+| **API REST Backend (Propia)** | API Interna / Privada | Gestión del flujo de trámites, autenticación de usuarios/operadores, asignación correlativa de folios, consulta de polígonos territoriales y generación de certificados PDF. |
+| **Cloudinary Media API** | Servicio Cloud | Recepción, almacenamiento seguro en la nube, optimización de archivos y transformación dinámica para previsualizar evidencias (imágenes y PDFs). |
+| **OpenStreetMap / Nominatim API** | API Externa / Geo | Búsqueda de direcciones y geocodificación de ubicaciones en la comuna de Ñuñoa, convirtiendo direcciones escritas en coordenadas geográficas. |
+| **HTML5 Geolocation API** | API de Navegador | Obtención de coordenadas GPS en vivo del dispositivo del usuario (móvil o escritorio) previo consentimiento explícito. |
+| **MongoDB Atlas Data API** | API de Base de Datos | Servicio distribuido en la nube para la lectura y escritura persistente de los datos de organizaciones vecinales, vecinos y solicitudes. |
 
 ## 📁 Estructura del Proyecto
 

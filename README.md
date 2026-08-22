@@ -104,6 +104,9 @@ sistema-junta-vecinos/  (Frontend - React SPA)
 │   ├── index.js                    # Punto de entrada principal de React (ReactDOM.render)
 │   ├── reportWebVitals.js          # Medición de métricas de rendimiento web
 │   └── setupTests.js               # Configuración inicial para pruebas con Jest
+├── Dockerfile                       # Multi-stage build (React + Nginx) para empaquetado del frontend
+├── .dockerignore                   # Exclusiones de archivos para la imagen Docker de frontend
+├── docker-compose.yml              # Orquestador maestro (MongoDB privada, Backend Node, Frontend Nginx)
 ├── nunoa_polygons.kml              # Archivo KML original con polígonos geográficos de Ñuñoa
 ├── package.json                    # Configuración del proyecto, scripts (build, deploy) y dependencias
 ├── package-lock.json               # Árbol de versiones bloqueadas de paquetes npm
@@ -134,13 +137,30 @@ backend-junta-vecinos/  (Backend - Node.js + Express REST API)
 │   ├── metricasCuantitativas.test.js # Pruebas de métricas de objetivos específicos
 │   ├── solicitud.test.js           # Pruebas de integración de solicitudes y folios
 │   └── vecino.test.js              # Pruebas de autenticación y registro de vecinos
+├── .dockerignore                   # Exclusiones de archivos para la imagen Docker del backend
+├── Dockerfile                      # Imagen Docker del backend con librerías Linux para Puppeteer/Chrome
+├── docker-compose.yml              # Orquestador local del backend y MongoDB aislada
 ├── .env                            # Variables de entorno (puertos, URI MongoDB, Cloudinary)
 ├── index.js                        # Servidor principal de Express y conexión a MongoDB
 ├── jest.config.js                  # Configuración del runner de pruebas Jest
 └── package.json                    # Dependencias del servidor Node.js
 ```
 
-## ⚙️ Ejecución Local
+## 🐳 Despliegue con Docker (Contenedores y Redes Privadas)
+
+El proyecto cuenta con empaquetado en contenedores **Docker** y orquestación con **Docker Compose**, lo que permite encender la solución completa (Base de datos MongoDB en red privada aislada, API Backend Node.js y Frontend React sobre servidor Web Nginx) con un solo comando:
+
+```bash
+# Encender y compilar la solución completa con Docker Compose
+docker compose up --build
+```
+
+### 🔒 Ventajas de la arquitectura en contenedores:
+1. **Red Privada Interna (`jvv-red-privada`)**: La base de datos MongoDB se ejecuta de forma totalmente aislada dentro de una red virtual interna sin exponer puertos a internet.
+2. **Portabilidad de Entorno**: Puppeteer se ejecuta en una imagen Linux Debian/Alpine con todas sus dependencias preinstaladas, garantizando una emisión de certificados PDF identica en cualquier servidor.
+3. **Servidor Nginx de Alto Rendimiento**: El cliente React se compila mediante un *Multi-Stage Build* y se sirve sobre Nginx en el puerto 80/8080.
+
+## ⚙️ Ejecución Local (Sin Docker)
 ```bash
 # Instalar dependencias
 npm install

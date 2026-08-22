@@ -144,7 +144,7 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
         validarDireccionTerritorial();
     }, [docActivo, solicitud, config, juntaConfig]);
 
-    // 🔴 LOGS DE CICLO DE VIDA (Mira tu consola del navegador cuando ocurra el parpadeo)
+    // 🔴 LOGS DE CICLO DE VIDA (Logs de ciclo de vida en consola para seguimiento de renderizado)
     console.log("=============================================");
     console.log("🔄 DetalleRevision RENDERIZADO");
     console.log("🆔 ID Solicitud recibido:", solicitud?.id || solicitud?._id);

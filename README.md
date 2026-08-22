@@ -249,13 +249,13 @@ git clone https://github.com/lilo2023/backend-junta-vecinos.git
    ```bash
    npm start
    ```
-   > 🟢 La aplicación web se abrirá automáticamente en tu navegador en: `http://localhost:3000`
+   > 🟢 La aplicación web se abrirá automáticamente en el navegador en: `http://localhost:3000`
 
 ---
 
 ## 🧪 Verificación del Entorno
 
-1. Abre `http://localhost:3000` en tu navegador.
+1. Abre `http://localhost:3000` en el navegador.
 2. **Prueba Vecino**: Ingresa a "Solicitar Certificado", ingresa una dirección (ej: `Suecia 2655, Ñuñoa`), adjunta archivos de prueba y envía la solicitud.
 3. **Prueba Operador JJVV**: Inicia sesión como operador (`jvuniversidad19@gmail.com` / `junta1` o `unioncomunalnunoa@gmail.com` / `junta2`) y verifica que las solicitudes aparezcan en el panel de revisión.
 

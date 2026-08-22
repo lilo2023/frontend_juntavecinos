@@ -42,25 +42,83 @@ organizaciones vecinales (multi-tenant) desde una única plataforma.
 - **Cloudinary** — Almacenamiento de imágenes y PDFs en la nube
 
 ## 📁 Estructura del Proyecto
-src/
 
-├── features/
+### Estructura del Proyecto (Repositorio Frontend)
 
-│   ├── vecino/
+```text
+sistema-junta-vecinos/  (Frontend - React SPA)
+├── .github/
+│   └── workflows/
+│       └── deploy.yml              # Pipeline de CI/CD para despliegue automático en GitHub Pages
+├── public/                         # Recursos estáticos públicos de la aplicación
+│   ├── demo_cedula.jpg             # Imagen de prueba para Cédula de Identidad (Botón Demo "A")
+│   ├── demo_domicilio.pdf          # Certificado PDF de prueba para Domicilio (Botón Demo "A")
+│   ├── demo_pago.jpg               # Comprobante de pago de prueba Itaú (Botón Demo "A")
+│   ├── favicon.ico / favicon.png   # Iconos institucionales de la pestaña del navegador
+│   ├── index.html                  # Plantilla HTML principal de la SPA
+│   ├── manifest.json               # Configuración PWA / Web App
+│   └── robots.txt                  # Reglas de indexación para buscadores
+├── src/                            # Código fuente del proyecto en React
+│   ├── components/                 # Componentes de UI genéricos y reutilizables
+│   ├── features/                   # Módulos del sistema agrupados por dominio de negocio
+│   │   ├── administracion/         # Módulo de administración e institución
+│   │   │   └── ConfiguracionJunta.jsx  # Configuración de membrete, firmas y datos bancarios
+│   │   ├── autenticacion/          # Módulo de control de acceso e inicio
+│   │   │   ├── LandingPage.jsx         # Página principal de presentación de la solución
+│   │   │   └── LoginRegister.jsx       # Registro e inicio de sesión de vecinos y directivas
+│   │   ├── junta/                  # Módulo del Operador / Junta de Vecinos
+│   │   │   ├── DetalleRevision.jsx     # Visor de evidencias con zoom, soporte PDF y emisión
+│   │   │   └── PanelAdmin.jsx          # Bandeja de entrada y gestión de solicitudes en tiempo real
+│   │   └── vecino/                 # Módulo del Residente / Vecino
+│   │       ├── FormularioSolicitud.jsx # Formulario de solicitud de certificado con subida Cloudinary
+│   │       ├── IdentificadorJunta.jsx  # Buscador territorial de JJVV por dirección y mapas OSM
+│   │       ├── juntasData.js           # Directorio y datos de sedes de las JJVV de Ñuñoa
+│   │       ├── MisSolicitudes.jsx      # Portal del vecino para seguimiento y descarga de trámites
+│   │       └── nunoaPolygonsData.js    # Polígonos de límites territoriales oficiales de Ñuñoa
+│   ├── App.css                     # Estilos globales y layouts de la aplicación
+│   ├── App.js                      # Componente raíz: orquestador de estados, rutas y API
+│   ├── index.css                   # Resets CSS y reglas globales base
+│   ├── index.js                    # Punto de entrada principal de React (ReactDOM.render)
+│   ├── reportWebVitals.js          # Medición de métricas de rendimiento web
+│   └── setupTests.js               # Configuración inicial para pruebas con Jest
+├── nunoa_polygons.kml              # Archivo KML original con polígonos geográficos de Ñuñoa
+├── package.json                    # Configuración del proyecto, scripts (build, deploy) y dependencias
+├── package-lock.json               # Árbol de versiones bloqueadas de paquetes npm
+└── README.md                       # Documentación principal del proyecto
+```
 
-│   │   └── FormularioSolicitud.jsx    # Portal del vecino
+### Estructura del Proyecto (Repositorio Backend)
 
-│   ├── junta/
-
-│   │   ├── PanelAdmin.jsx             # Bandeja de entrada operador
-
-│   │   └── DetalleRevision.jsx        # Visor de evidencias y certificado
-
-│   └── administracion/
-
-│       └── ConfiguracionJunta.jsx     # Panel de configuración
-
-└── App.js                             # Orquestador principal
+```text
+backend-junta-vecinos/  (Backend - Node.js + Express REST API)
+├── controllers/                    # Lógica de negocio de la API
+│   ├── authController.js           # Autenticación y tokens
+│   ├── juntaController.js          # Configuración y datos institucionales
+│   ├── residenteController.js      # Gestión de perfil del residente
+│   ├── solicitudController.js      # Creación de trámites, estados y generación de PDF (Puppeteer)
+│   └── vecinoController.js         # Registro y validación de vecinos
+├── models/                         # Modelos de datos Mongoose (MongoDB Atlas)
+│   ├── Junta.js                    # Esquema de organización vecinal
+│   ├── Residente.js                # Esquema de perfil residente
+│   ├── Solicitud.js                # Esquema de trámite de certificado
+│   └── Vecino.js                   # Esquema de usuario vecino
+├── routes/                         # Definición de rutas y endpoints HTTP REST
+│   ├── authRoutes.js               # Endpoints de autenticación (/api/auth)
+│   ├── juntaRoutes.js              # Endpoints de juntas (/api/junta)
+│   ├── residenteRoutes.js          # Endpoints de residentes (/api/residente)
+│   ├── solicitudRoutes.js          # Endpoints de solicitudes (/api/solicitudes)
+│   └── vecinoRoutes.js             # Endpoints de vecinos (/api/vecino)
+├── tests/                          # Suite de pruebas automatizadas Jest + Supertest
+│   ├── mocks/
+│   │   └── puppeteerMock.js        # Mock para pruebas sin ejecución real de navegador
+│   ├── metricasCuantitativas.test.js
+│   ├── solicitud.test.js
+│   └── vecino.test.js
+├── .env                            # Variables de entorno (puertos, URI MongoDB, Cloudinary)
+├── index.js                        # Servidor principal de Express y conexión a MongoDB
+├── jest.config.js                  # Configuración del runner de pruebas Jest
+└── package.json                    # Dependencias del servidor Node.js
+```
 
 ## ⚙️ Ejecución Local
 ```bash

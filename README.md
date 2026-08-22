@@ -59,7 +59,6 @@ sistema-junta-vecinos/  (Frontend - React SPA)
 │   ├── manifest.json               # Configuración PWA / Web App
 │   └── robots.txt                  # Reglas de indexación para buscadores
 ├── src/                            # Código fuente del proyecto en React
-│   ├── components/                 # Componentes de UI genéricos y reutilizables
 │   ├── features/                   # Módulos del sistema agrupados por dominio de negocio
 │   │   ├── administracion/         # Módulo de administración e institución
 │   │   │   └── ConfiguracionJunta.jsx  # Configuración de membrete, firmas y datos bancarios
@@ -92,28 +91,25 @@ sistema-junta-vecinos/  (Frontend - React SPA)
 ```text
 backend-junta-vecinos/  (Backend - Node.js + Express REST API)
 ├── controllers/                    # Lógica de negocio de la API
-│   ├── authController.js           # Autenticación y tokens
-│   ├── juntaController.js          # Configuración y datos institucionales
-│   ├── residenteController.js      # Gestión de perfil del residente
+│   ├── authController.js           # Autenticación de operadores y 2FA
+│   ├── juntaController.js          # Configuración y datos institucionales de JJVV
 │   ├── solicitudController.js      # Creación de trámites, estados y generación de PDF (Puppeteer)
-│   └── vecinoController.js         # Registro y validación de vecinos
+│   └── vecinoController.js         # Registro, autenticación y perfil de vecinos
 ├── models/                         # Modelos de datos Mongoose (MongoDB Atlas)
-│   ├── Junta.js                    # Esquema de organización vecinal
-│   ├── Residente.js                # Esquema de perfil residente
-│   ├── Solicitud.js                # Esquema de trámite de certificado
-│   └── Vecino.js                   # Esquema de usuario vecino
+│   ├── Junta.js                    # Esquema de organización vecinal / operador
+│   ├── Solicitud.js                # Esquema de trámite de certificado de residencia
+│   └── Vecino.js                   # Esquema de usuario vecino / residente
 ├── routes/                         # Definición de rutas y endpoints HTTP REST
-│   ├── authRoutes.js               # Endpoints de autenticación (/api/auth)
-│   ├── juntaRoutes.js              # Endpoints de juntas (/api/junta)
-│   ├── residenteRoutes.js          # Endpoints de residentes (/api/residente)
+│   ├── authRoutes.js               # Endpoints de autenticación 2FA (/api/auth)
+│   ├── juntaRoutes.js              # Endpoints de juntas y operadores (/api/juntas)
 │   ├── solicitudRoutes.js          # Endpoints de solicitudes (/api/solicitudes)
-│   └── vecinoRoutes.js             # Endpoints de vecinos (/api/vecino)
+│   └── vecinoRoutes.js             # Endpoints de vecinos (/api/vecinos)
 ├── tests/                          # Suite de pruebas automatizadas Jest + Supertest
 │   ├── mocks/
 │   │   └── puppeteerMock.js        # Mock para pruebas sin ejecución real de navegador
-│   ├── metricasCuantitativas.test.js
-│   ├── solicitud.test.js
-│   └── vecino.test.js
+│   ├── metricasCuantitativas.test.js # Pruebas de métricas de objetivos específicos
+│   ├── solicitud.test.js           # Pruebas de integración de solicitudes y folios
+│   └── vecino.test.js              # Pruebas de autenticación y registro de vecinos
 ├── .env                            # Variables de entorno (puertos, URI MongoDB, Cloudinary)
 ├── index.js                        # Servidor principal de Express y conexión a MongoDB
 ├── jest.config.js                  # Configuración del runner de pruebas Jest

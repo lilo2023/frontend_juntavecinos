@@ -1,0 +1,98 @@
+/* ====================================================================
+   DESIGN SYSTEM - SISTEMA DE CERTIFICADOS DE RESIDENCIA DE JJVV
+   Tokens de Diseño y Clases de UI Estandarizadas
+   ==================================================================== */
+
+:root {
+  /* --- PALETA DE COLORES INSTITUCIONALES --- */
+  --color-primary: #0369a1;        /* Azul primario institucional */
+  --color-primary-hover: #0284c7;  /* Azul primario hover */
+  --color-primary-dark: #0c4a6e;   /* Azul oscuro texto encabezados */
+  --color-primary-bg: #f0f9ff;     /* Fondo azul claro tarjetas/banners */
+  --color-primary-border: #bae6fd; /* Borde azul claro */
+
+  --color-success: #28a745;        /* Verde éxito acciones confirmadas */
+  --color-success-hover: #218838;  /* Verde éxito hover */
+  --color-success-bg: #f0fdf4;     /* Fondo verde éxito */
+  --color-success-border: #bbf7d0; /* Borde verde */
+
+  --color-danger: #dc3545;         /* Rojo peligro / rechazo */
+  --color-danger-hover: #c82333;   /* Rojo peligro hover */
+  --color-danger-bg: #fef2f2;      /* Fondo rojo peligro */
+  
+  --color-warning: #dd6b20;        /* Naranja advertencia */
+  --color-warning-bg: #fffaf0;     /* Fondo naranja claro */
+  --color-warning-border: #feebc8; /* Borde naranja */
+
+  --color-neutral-bg: #f8fafc;     /* Fondo gris claro general */
+  --color-card-bg: #ffffff;        /* Fondo tarjetas blancas */
+  --color-text-main: #1e293b;      /* Texto principal oscuro */
+  --color-text-muted: #64748b;     /* Texto secundario / ayuda */
+  --color-border: #e2e8f0;         /* Borde gris neutro */
+
+  /* --- BORDES REDONDEADOS (BORDER RADIUS) --- */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 9999px;
+
+  /* --- SOMBRAS (BOX SHADOWS) --- */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 2px 5px rgba(0, 0, 0, 0.03);
+  --shadow-btn: 0 2px 6px rgba(0, 0, 0, 0.12);
+
+  /* --- TIPOGRAFÍA Y FUENTES --- */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* --- CLASES DE UTILIDAD DE UI --- */
+
+.ds-card {
+  background-color: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--color-shadow-card);
+}
+
+.ds-btn-primary {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-btn);
+  transition: background-color 0.2s ease;
+}
+
+.ds-btn-primary:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.ds-btn-success {
+  background-color: var(--color-success);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 12px 20px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-btn);
+  transition: background-color 0.2s ease;
+}
+
+.ds-btn-success:hover {
+  background-color: var(--color-success-hover);
+}
+
+.ds-alert-info {
+  background-color: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  color: var(--color-primary);
+  font-size: 13px;
+  line-height: 1.6;
+}

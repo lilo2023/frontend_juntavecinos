@@ -17,7 +17,8 @@ export default function PanelAdmin({ listaSolicitudes, onActualizarEstado, onSim
         );
     }
 
-    const pendientes  = listaSolicitudes.filter(s => s.estado === 'Pendiente').length;
+    const eliminadas  = listaSolicitudes.filter(s => s.estado === 'Eliminado' || !s.nombre || s.nombre.includes('Eliminado') || s.motivoRechazo?.includes('21.719')).length;
+    const pendientes  = listaSolicitudes.filter(s => s.estado === 'Pendiente' && !s.nombre?.includes('Eliminado') && !s.motivoRechazo?.includes('21.719')).length;
     const aprobadas   = listaSolicitudes.filter(s => s.estado === 'Aprobado').length;
     const rechazadas  = listaSolicitudes.filter(s => s.estado === 'Rechazado').length;
 
@@ -52,16 +53,17 @@ export default function PanelAdmin({ listaSolicitudes, onActualizarEstado, onSim
                 {/* Contadores */}
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     {[
-                        { label: 'Total',      value: listaSolicitudes.length, color: '#1e40af', bg: '#eff6ff' },
-                        { label: 'Pendientes', value: pendientes,              color: '#b45309', bg: '#fffbeb' },
-                        { label: 'Aprobadas',  value: aprobadas,               color: '#166534', bg: '#f0fdf4' },
-                        { label: 'Rechazadas', value: rechazadas,              color: '#991b1b', bg: '#fef2f2' },
+                        { label: 'Total',             value: listaSolicitudes.length, color: '#1e40af', bg: '#eff6ff' },
+                        { label: 'Pendientes',        value: pendientes,              color: '#b45309', bg: '#fffbeb' },
+                        { label: 'Aprobadas',         value: aprobadas,               color: '#166534', bg: '#f0fdf4' },
+                        { label: 'Rechazadas',        value: rechazadas,              color: '#dc3545', bg: '#fef2f2' },
+                        { label: 'Eliminadas (ARCOP)',value: eliminadas,              color: '#991b1b', bg: '#fff1f2' },
                     ].map(({ label, value, color, bg }) => (
                         <div key={label} style={{
                             background: bg, border: `1px solid ${color}30`,
-                            borderRadius: '8px', padding: '8px 16px', textAlign: 'center', minWidth: '72px'
+                            borderRadius: '8px', padding: '8px 14px', textAlign: 'center', minWidth: '70px'
                         }}>
-                            <div style={{ fontSize: '20px', fontWeight: '800', color }}>{value}</div>
+                            <div style={{ fontSize: '18px', fontWeight: '800', color }}>{value}</div>
                             <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>{label}</div>
                         </div>
                     ))}

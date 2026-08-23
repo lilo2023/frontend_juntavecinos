@@ -301,10 +301,10 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
 
     console.log("--- ENVIANDO AL VISOR ---", solicitud);
 
-    const esEliminadoLey21719 = !solicitud?.nombre || solicitud?.nombre.includes('Eliminado') || solicitud?.motivoRechazo?.includes('21.719');
+    const esEliminadoLey21719 = solicitud?.estado === 'Eliminado' || !solicitud?.nombre || solicitud?.nombre.includes('Eliminado') || solicitud?.motivoRechazo?.includes('21.719');
 
-    // --- RENDEREADO VISTA 2: CASO RECHAZADO / ANONIMIZADO ---
-    if (esEliminadoLey21719 || solicitud?.estado === 'Rechazado' || estadoLocal === 'Rechazado') {
+    // --- RENDEREADO VISTA 2: CASO RECHAZADO / ANONIMIZADO / ELIMINADO ---
+    if (esEliminadoLey21719 || solicitud?.estado === 'Rechazado' || estadoLocal === 'Rechazado' || estadoLocal === 'Eliminado') {
         return (
             <div style={{ maxWidth: '600px', margin: '30px auto', padding: '30px', backgroundColor: '#fff', borderTop: esEliminadoLey21719 ? '5px solid #991b1b' : '5px solid #dc3545', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', fontFamily: "'Outfit', Arial, sans-serif" }}>
                 {!soloLecturaVecino && (

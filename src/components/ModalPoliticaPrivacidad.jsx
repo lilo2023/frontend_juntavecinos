@@ -90,7 +90,7 @@ export default function ModalPoliticaPrivacidad({ isOpen, onClose }) {
           </section>
 
           <section className="ds-legal-section">
-            <h4>5. Derechos ARCO del Titular</h4>
+            <h4>5. Derechos ARCOP del Titular y Canales de Ejercicio</h4>
             <p>
               Conforme a la Ley N° 21.719, el titular de los datos personales puede ejercer en cualquier momento sus derechos de:
             </p>
@@ -101,6 +101,9 @@ export default function ModalPoliticaPrivacidad({ isOpen, onClose }) {
               <li><strong>Oposición:</strong> Oponerse al tratamiento de sus datos por motivos legítimos y específicos.</li>
               <li><strong>Portabilidad:</strong> Solicitar una copia de sus datos en formato estructurado e interoperable.</li>
             </ul>
+            <p style={{ marginTop: '10px' }}>
+              Para ejercer cualquiera de estos derechos, el titular puede enviar una comunicación escrita o correo electrónico al canal oficial de su Junta de Vecinos (ej: <em>jvuniversidad19@gmail.com</em> / <em>unioncomunalnunoa@gmail.com</em>) o a través de la administración de la plataforma.
+            </p>
           </section>
 
           <section className="ds-legal-section">

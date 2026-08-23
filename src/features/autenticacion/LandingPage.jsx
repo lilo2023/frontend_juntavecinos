@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
+import ModalPoliticaPrivacidad from '../../components/ModalPoliticaPrivacidad';
 
 export default function LandingPage({ onSelectRole }) {
+    const [showModalPolitica, setShowModalPolitica] = useState(false);
     return (
         <div style={{
             display: 'flex',
@@ -234,10 +236,35 @@ export default function LandingPage({ onSelectRole }) {
                 marginTop: '60px',
                 fontSize: '13px',
                 color: '#94a3b8',
-                textAlign: 'center'
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px'
             }}>
-                © 2026 Plataforma JJVV SaaS. Todos los derechos reservados. Ajustado a Ley 19.418 de Chile.
+                <div>
+                    © 2026 Plataforma JJVV SaaS. Todos los derechos reservados. Ajustado a Ley 19.418 y Ley 21.719 de Chile.
+                </div>
+                <button
+                    onClick={() => setShowModalPolitica(true)}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#2563eb',
+                        textDecoration: 'underline',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500'
+                    }}
+                >
+                    📜 Política de Tratamiento de Datos Personales (Ley 21.719)
+                </button>
             </div>
+
+            <ModalPoliticaPrivacidad 
+                isOpen={showModalPolitica}
+                onClose={() => setShowModalPolitica(false)}
+            />
         </div>
     );
 }

@@ -96,3 +96,219 @@
   font-size: 13px;
   line-height: 1.6;
 }
+
+/* --- ESTILOS DE CASILLAS DE VERIFICACIÓN LEGALES --- */
+.ds-checkbox-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background-color: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin: 16px 0;
+  text-align: left;
+}
+
+.ds-checkbox-input {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.ds-checkbox-label {
+  font-size: 14px;
+  color: var(--color-text-main);
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.ds-link-legal {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.ds-link-legal:hover {
+  color: var(--color-primary-hover);
+}
+
+/* --- ESTILOS DEL MODAL --- */
+.ds-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.ds-modal-content {
+  background-color: var(--color-card-bg);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 720px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  animation: dsModalFadeIn 0.25s ease-out;
+}
+
+@keyframes dsModalFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ds-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ds-modal-title {
+  margin: 0 0 6px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.ds-badge-ley {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background-color: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+}
+
+.ds-modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.2s ease;
+}
+
+.ds-modal-close-btn:hover {
+  background-color: var(--color-neutral-bg);
+  color: var(--color-text-main);
+}
+
+.ds-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  font-size: 14px;
+  color: var(--color-text-main);
+  line-height: 1.6;
+}
+
+.ds-legal-intro {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 14px;
+  background-color: var(--color-neutral-bg);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--color-primary);
+}
+
+.ds-legal-section {
+  margin-bottom: 18px;
+}
+
+.ds-legal-section h4 {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+  color: var(--color-primary-dark);
+}
+
+.ds-legal-section p {
+  margin: 0 0 8px 0;
+}
+
+.ds-legal-section ul {
+  margin: 0 0 8px 0;
+  padding-left: 20px;
+}
+
+.ds-legal-section li {
+  margin-bottom: 4px;
+}
+
+.ds-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-neutral-bg);
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+}
+
+.ds-btn-secondary {
+  background-color: #ffffff;
+  color: var(--color-text-main);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ds-btn-secondary:hover {
+  background-color: var(--color-neutral-bg);
+  border-color: #cbd5e1;
+}
+
+/* Reglas de impresión para el modal */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .ds-modal-content, .ds-modal-content * {
+    visibility: visible;
+  }
+  .ds-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    background: none;
+  }
+  .ds-modal-content {
+    max-width: 100%;
+    box-shadow: none;
+  }
+  .ds-modal-footer, .ds-modal-close-btn {
+    display: none !important;
+  }
+}
+

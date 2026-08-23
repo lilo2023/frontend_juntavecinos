@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ModalPoliticaPrivacidad from '../../components/ModalPoliticaPrivacidad';
 
 // ==========================================
 // FUNCIONES AUXILIARES (FORMATEO Y VALIDACIÓN)
@@ -74,6 +75,10 @@ export default function FormularioSolicitud(props) {
 
     const [rutError, setRutError] = useState(false);
     const [isSubiendo, setIsSubiendo] = useState(false); // Estado para feedback de carga de imágenes
+
+    // Consentimiento Ley 21.719
+    const [aceptaPolitica, setAceptaPolitica] = useState(false);
+    const [showModalPolitica, setShowModalPolitica] = useState(false);
 
     // 📁 NUEVOS ESTADOS COMPLEMENTARIOS PARA ARCHIVOS REALES (BINARIOS CRUDOS)
     const [archivosRaw, setArchivosRaw] = useState({
@@ -240,6 +245,11 @@ export default function FormularioSolicitud(props) {
             return;
         }
 
+        if (!aceptaPolitica) {
+            alert('Debes autorizar el tratamiento de tus datos personales para enviar la solicitud.');
+            return;
+        }
+
         const esEdicion = !!props.solicitudAEditar;
         if (!esEdicion && (!archivosRaw.cedula || !archivosRaw.domicilio || !archivosRaw.comprobantePago)) {
             alert('Por favor, adjunte los tres documentos requeridos (Cédula, Acreditación y Comprobante).');
@@ -313,6 +323,9 @@ export default function FormularioSolicitud(props) {
                 pago: cloudPagoUrl || (esEdicion ? props.solicitudAEditar.urls?.pago : '')
             },
             tipoDocDomicilio: formData.tipoDocDomicilio || 'Doc. Domicilio',
+            aceptaTratamientoDatos: true,
+            fechaAceptacionDatos: new Date().toISOString(),
+            versionPolitica: '1.0',
             ...(esEdicion && { estado: 'Pendiente', motivoRechazo: '' })
         };
 
@@ -662,20 +675,42 @@ export default function FormularioSolicitud(props) {
                     )}
                 </div>
 
+                {/* Casilla Consentimiento Ley 21.719 */}
+                <div className="ds-checkbox-container" style={{ margin: '20px 0 10px 0' }}>
+                    <input
+                        type="checkbox"
+                        id="aceptaPoliticaSolicitud"
+                        className="ds-checkbox-input"
+                        checked={aceptaPolitica}
+                        onChange={(e) => setAceptaPolitica(e.target.checked)}
+                    />
+                    <label htmlFor="aceptaPoliticaSolicitud" className="ds-checkbox-label">
+                        Declaro que los datos ingresados y documentos adjuntos son verídicos, y autorizo a la Junta de Vecinos a tratar mis datos personales exclusivamente para la tramitación de esta solicitud conforme a la{' '}
+                        <button
+                            type="button"
+                            className="ds-link-legal"
+                            onClick={() => setShowModalPolitica(true)}
+                        >
+                            Política de Tratamiento de Datos Personales (Ley 21.719)
+                        </button>.
+                    </label>
+                </div>
+
                 <button 
                     type="submit" 
-                    disabled={isSubiendo}
+                    disabled={!aceptaPolitica || isSubiendo}
                     style={{ 
-                        background: isSubiendo ? '#4a5568' : '#28a745', 
+                        background: (!aceptaPolitica || isSubiendo) ? '#a0aec0' : '#28a745', 
                         color: 'white', 
                         padding: '14px', 
                         border: 'none', 
                         borderRadius: '6px', 
-                        cursor: isSubiendo ? 'not-allowed' : 'pointer', 
+                        cursor: (!aceptaPolitica || isSubiendo) ? 'not-allowed' : 'pointer', 
                         fontSize: '16px', 
                         fontWeight: 'bold', 
                         boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-                        transition: 'background-color 0.2s ease'
+                        transition: 'background-color 0.2s ease',
+                        opacity: (!aceptaPolitica || isSubiendo) ? 0.7 : 1
                     }}
                 >
                     {isSubiendo ? (
@@ -698,6 +733,12 @@ export default function FormularioSolicitud(props) {
                     )}
                 </button>
             </form>
+
+            {/* Modal de Política de Privacidad */}
+            <ModalPoliticaPrivacidad 
+                isOpen={showModalPolitica} 
+                onClose={() => setShowModalPolitica(false)} 
+            />
         </div>
     );
 }

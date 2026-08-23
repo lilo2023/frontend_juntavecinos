@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ModalPoliticaPrivacidad from '../../components/ModalPoliticaPrivacidad';
 
 // RUT format and validation helper functions
 const formatearRut = (rut) => {
@@ -64,6 +65,10 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
     const [cargando, setCargando] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // Consentimiento Ley 21.719
+    const [aceptaPolitica, setAceptaPolitica] = useState(false);
+    const [showModalPolitica, setShowModalPolitica] = useState(false);
 
     // Recuperar contraseña state
     const [esOlvidadoPassword, setEsOlvidadoPassword] = useState(false);
@@ -488,6 +493,11 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
             return;
         }
 
+        if (!aceptaPolitica) {
+            setErrorMessage('Debes aceptar la Política de Tratamiento de Datos Personales para registrarte.');
+            return;
+        }
+
         setCargando(true);
         const emailClean = registerData.email.trim().toLowerCase();
 
@@ -505,7 +515,10 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                     nombre: registerData.nombre,
                     rut: registerData.rut,
                     correo: emailClean,
-                    password: registerData.password
+                    password: registerData.password,
+                    aceptaTratamientoDatos: true,
+                    fechaAceptacionDatos: new Date().toISOString(),
+                    versionPolitica: '1.0'
                 })
             });
             const data = await resp.json();
@@ -527,7 +540,9 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                 nombre: registerData.nombre,
                 rut: registerData.rut,
                 email: registerData.email,
-                password: registerData.password
+                password: registerData.password,
+                aceptaTratamientoDatos: true,
+                fechaAceptacionDatos: new Date().toISOString()
             });
             localStorage.setItem('vecinos_cuentas', JSON.stringify(savedVecinos));
 
@@ -535,6 +550,7 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
             setIsLogin(true);
             setLoginData({ email: registerData.email, password: registerData.password });
             setRegisterData({ nombre: '', rut: '', email: '', password: '', confirmPassword: '' });
+            setAceptaPolitica(false);
 
         } catch (err) {
             setCargando(false);
@@ -1172,8 +1188,38 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                             </button>
                         </div>
 
+                        {/* Casilla Ley 21.719 */}
+                        <div className="ds-checkbox-container">
+                            <input
+                                type="checkbox"
+                                id="aceptaPoliticaVecino"
+                                className="ds-checkbox-input"
+                                checked={aceptaPolitica}
+                                onChange={(e) => setAceptaPolitica(e.target.checked)}
+                            />
+                            <label htmlFor="aceptaPoliticaVecino" className="ds-checkbox-label">
+                                He leído y acepto la{' '}
+                                <button
+                                    type="button"
+                                    className="ds-link-legal"
+                                    onClick={() => setShowModalPolitica(true)}
+                                >
+                                    Política de Tratamiento de Datos Personales (Ley 21.719)
+                                </button>.
+                            </label>
+                        </div>
+
                         <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
-                            <button type="submit" style={{ ...buttonStyle, flex: 1 }}>
+                            <button 
+                                type="submit" 
+                                disabled={!aceptaPolitica || cargando} 
+                                style={{ 
+                                    ...buttonStyle, 
+                                    flex: 1,
+                                    opacity: (!aceptaPolitica || cargando) ? 0.6 : 1,
+                                    cursor: (!aceptaPolitica || cargando) ? 'not-allowed' : 'pointer'
+                                }}
+                            >
                                 Registrarse y Crear Cuenta
                             </button>
                             <button
@@ -1438,6 +1484,12 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                     </>
                 )}
             </div>
+
+            {/* Modal de Política de Privacidad */}
+            <ModalPoliticaPrivacidad 
+                isOpen={showModalPolitica} 
+                onClose={() => setShowModalPolitica(false)} 
+            />
         </div>
     );
 }

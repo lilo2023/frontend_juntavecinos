@@ -180,19 +180,22 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                         }
                         html, body {
                             height: 100% !important;
-                            overflow: hidden !important;
+                            overflow: visible !important;
                             background: white !important;
                             margin: 0 !important;
                             padding: 0 !important;
                             -webkit-print-color-adjust: exact !important;
                             print-color-adjust: exact !important;
                         }
-                        /* Ocultar la barra navegadora superior, encabezados y el botón de impresión */
-                        header, nav, footer, button, .no-print, [class*="nav"], [class*="Header"] {
+                        /* Ocultar la barra navegadora superior, encabezados, botones y contenedores ajenos */
+                        header, nav, footer, button, .no-print, [class*="nav"], [class*="Header"], .ds-checkbox-container {
                             display: none !important;
                         }
+                        .certificado-imprimible, .certificado-imprimible * {
+                            visibility: visible !important;
+                        }
                         .certificado-imprimible {
-                            position: relative !important;
+                            position: absolute !important;
                             left: 0 !important;
                             top: 0 !important;
                             width: 100% !important;

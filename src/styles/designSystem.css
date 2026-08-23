@@ -287,28 +287,25 @@
   border-color: #cbd5e1;
 }
 
-/* Reglas de impresión para el modal */
+/* Reglas de impresión seguras para el modal (sin interferir con certificados ni páginas) */
 @media print {
-  body * {
-    visibility: hidden;
-  }
-  .ds-modal-content, .ds-modal-content * {
-    visibility: visible;
-  }
   .ds-modal-overlay {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: auto;
-    background: none;
+    background: none !important;
+    backdrop-filter: none !important;
   }
   .ds-modal-content {
-    max-width: 100%;
-    box-shadow: none;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
   }
   .ds-modal-footer, .ds-modal-close-btn {
     display: none !important;
   }
 }
+
 

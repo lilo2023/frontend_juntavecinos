@@ -498,6 +498,8 @@ function App() {
           <MisSolicitudes 
             solicitudes={solicitudesFiltradas} 
             cargando={debeCargar}
+            userSession={session}
+            onCerrarSesion={handleLogout}
             onVerDetalle={(sol) => { setSolicitudActivaToken(sol); setVista('token-view'); }} 
             onNuevaSolicitud={() => { setSolicitudAEditar(null); setVista('vecino'); }} 
             onEditarSolicitud={(sol) => {

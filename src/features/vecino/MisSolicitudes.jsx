@@ -1,6 +1,49 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-export default function MisSolicitudes({ solicitudes, cargando, onVerDetalle, onNuevaSolicitud, onEditarSolicitud }) {
+export default function MisSolicitudes({ solicitudes, cargando, onVerDetalle, onNuevaSolicitud, onEditarSolicitud, userSession, onCerrarSesion }) {
+    const [showModalSupresion, setShowModalSupresion] = useState(false);
+    const [textoConfirmacion, setTextoConfirmacion] = useState('');
+    const [cargandoSupresion, setCargandoSupresion] = useState(false);
+    const [errorSupresion, setErrorSupresion] = useState('');
+
+    const handleEjecutarSupresion = async () => {
+        if (textoConfirmacion.trim().toUpperCase() !== 'ELIMINAR') return;
+        setCargandoSupresion(true);
+        setErrorSupresion('');
+
+        const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const urlApi = isLocalHost
+            ? 'http://localhost:5000/api/vecinos/eliminar-cuenta'
+            : 'https://backend-junta-vecinos.onrender.com/api/vecinos/eliminar-cuenta';
+
+        try {
+            const resp = await fetch(urlApi, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: userSession?.id,
+                    rut: userSession?.rut,
+                    correo: userSession?.email
+                })
+            });
+
+            const data = await resp.json();
+            setCargandoSupresion(false);
+
+            if (data.ok) {
+                alert('¡Tu cuenta y datos personales han sido eliminados de acuerdo a la Ley N° 21.719!');
+                if (typeof onCerrarSesion === 'function') {
+                    onCerrarSesion();
+                }
+            } else {
+                setErrorSupresion(data.mensaje || 'No se pudo eliminar la cuenta. Inténtalo de nuevo.');
+            }
+        } catch (err) {
+            setCargandoSupresion(false);
+            console.error('Error al suprimir cuenta:', err);
+            setErrorSupresion('Error de conexión con el servidor. Inténtalo de nuevo.');
+        }
+    };
     return (
         <div style={{
             maxWidth: '900px',
@@ -217,6 +260,167 @@ export default function MisSolicitudes({ solicitudes, cargando, onVerDetalle, on
                             })}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* Sección y Botón para Derechos ARCOP (Ley 21.719 - Supresión de Datos) */}
+            <div style={{
+                marginTop: '32px',
+                paddingTop: '20px',
+                borderTop: '1px solid #f1f5f9',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px'
+            }}>
+                <div>
+                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#991b1b' }}>
+                        🛡️ Derechos ARCOP — Ley N° 21.719
+                    </h4>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                        Puedes solicitar la eliminación total de tu cuenta, perfil y evidencias adjuntas en cualquier momento.
+                    </p>
+                </div>
+                <button
+                    onClick={() => setShowModalSupresion(true)}
+                    style={{
+                        backgroundColor: '#fff1f2',
+                        color: '#991b1b',
+                        border: '1px solid #fecdd3',
+                        borderRadius: '8px',
+                        padding: '8px 14px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    🗑️ Eliminar Mi Cuenta y Datos
+                </button>
+            </div>
+
+            {/* Modal de Confirmación de Supresión de Datos */}
+            {showModalSupresion && (
+                <div 
+                    className="ds-modal-overlay" 
+                    onClick={() => setShowModalSupresion(false)}
+                    style={{
+                        position: 'fixed',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000,
+                        padding: '16px'
+                    }}
+                >
+                    <div 
+                        className="ds-modal-content" 
+                        onClick={(e) => e.stopPropagation()} 
+                        style={{
+                            backgroundColor: '#ffffff',
+                            borderRadius: '16px',
+                            maxWidth: '540px',
+                            width: '100%',
+                            padding: '24px',
+                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+                            border: '1px solid #fee2e2'
+                        }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', borderBottom: '1px solid #fee2e2', paddingBottom: '12px' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#991b1b' }}>
+                                    ⚠️ Confirmar Supresión de Datos Personales
+                                </h3>
+                                <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: '600' }}>Ley N° 21.719 (Derecho de Supresión / Olvido)</span>
+                            </div>
+                            <button 
+                                type="button" 
+                                onClick={() => setShowModalSupresion(false)}
+                                style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#94a3b8' }}
+                            >
+                                &times;
+                            </button>
+                        </div>
+
+                        <div style={{ fontSize: '14px', color: '#334155', lineHeight: '1.5' }}>
+                            <p style={{ fontWeight: '600', color: '#1e293b', marginTop: 0 }}>
+                                Esta acción es irreversible y ejecutará de forma inmediata lo siguiente:
+                            </p>
+                            <ul style={{ paddingLeft: '20px', margin: '10px 0' }}>
+                                <li><strong>Eliminación de tu cuenta:</strong> Tu contraseña, RUT, correo y teléfono serán borrados permanentemente.</li>
+                                <li><strong>Eliminación de evidencias en la nube:</strong> Fotos de Cédula de Identidad y Comprobantes de Domicilio serán destruidos de Cloudinary.</li>
+                                <li><strong>Cierre de sesión:</strong> Tus credenciales actuales dejarán de funcionar inmediatamente.</li>
+                                <li><strong>Re-registro futuro:</strong> Si vuelves a requerir un certificado de residencia, deberás registrarte como nuevo usuario.</li>
+                            </ul>
+
+                            <p style={{ marginTop: '16px', fontSize: '13px', color: '#64748b' }}>
+                                Para confirmar la eliminación, por favor escribe la palabra <strong style={{ color: '#991b1b' }}>ELIMINAR</strong> en el siguiente campo:
+                            </p>
+
+                            <input 
+                                type="text" 
+                                value={textoConfirmacion} 
+                                onChange={(e) => setTextoConfirmacion(e.target.value)}
+                                placeholder="Escribe ELIMINAR aquí"
+                                style={{
+                                    width: '100%',
+                                    padding: '10px 12px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #cbd5e1',
+                                    fontSize: '14px',
+                                    marginTop: '6px',
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+
+                            {errorSupresion && (
+                                <div style={{ marginTop: '10px', color: '#dc2626', fontSize: '13px', fontWeight: '500' }}>
+                                    ❌ {errorSupresion}
+                                </div>
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+                            <button 
+                                type="button" 
+                                onClick={() => { setShowModalSupresion(false); setTextoConfirmacion(''); setErrorSupresion(''); }}
+                                disabled={cargandoSupresion}
+                                style={{
+                                    backgroundColor: '#f1f5f9',
+                                    color: '#475569',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    padding: '10px 16px',
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={handleEjecutarSupresion}
+                                disabled={textoConfirmacion.trim().toUpperCase() !== 'ELIMINAR' || cargandoSupresion}
+                                style={{
+                                    backgroundColor: textoConfirmacion.trim().toUpperCase() === 'ELIMINAR' ? '#dc2626' : '#fca5a5',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    padding: '10px 18px',
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    cursor: textoConfirmacion.trim().toUpperCase() === 'ELIMINAR' ? 'pointer' : 'not-allowed',
+                                    transition: 'background-color 0.2s'
+                                }}
+                            >
+                                {cargandoSupresion ? 'Eliminando...' : 'Sí, Eliminar Definitivamente'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

@@ -301,10 +301,12 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
 
     console.log("--- ENVIANDO AL VISOR ---", solicitud);
 
-    // --- RENDEREADO VISTA 2: CASO RECHAZADO (Muestra la ficha del vecino a ambos, y botón de volver al operador) ---
+    const esEliminadoLey21719 = !solicitud?.nombre || solicitud?.nombre.includes('Eliminado') || solicitud?.motivoRechazo?.includes('21.719');
+
+    // --- RENDEREADO VISTA 2: CASO RECHAZADO / ANONIMIZADO ---
     if (solicitud?.estado === 'Rechazado' || estadoLocal === 'Rechazado') {
         return (
-            <div style={{ maxWidth: '600px', margin: '30px auto', padding: '30px', backgroundColor: '#fff', borderTop: '5px solid #dc3545', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', fontFamily: "'Outfit', Arial, sans-serif" }}>
+            <div style={{ maxWidth: '600px', margin: '30px auto', padding: '30px', backgroundColor: '#fff', borderTop: esEliminadoLey21719 ? '5px solid #991b1b' : '5px solid #dc3545', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', fontFamily: "'Outfit', Arial, sans-serif" }}>
                 {!soloLecturaVecino && (
                     <button
                         onClick={onVolver}
@@ -318,22 +320,30 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                         ← Volver a la Bandeja
                     </button>
                 )}
-                <h2 style={{ color: '#c62828', fontSize: '20px', fontWeight: '700', marginTop: 0 }}>❌ Solicitud No Aprobada</h2>
-                <p style={{ fontSize: '14px', color: '#1e293b' }}>Estimado/a <strong>{solicitud.nombre}</strong>,</p>
+                <h2 style={{ color: esEliminadoLey21719 ? '#991b1b' : '#c62828', fontSize: '20px', fontWeight: '700', marginTop: 0 }}>
+                    {esEliminadoLey21719 ? '🛡️ Registro Anonimizado — Ley N° 21.719' : '❌ Solicitud No Aprobada'}
+                </h2>
+                <p style={{ fontSize: '14px', color: '#1e293b' }}>
+                    {esEliminadoLey21719 ? 'Titular de la solicitud:' : 'Estimado/a'} <strong>{solicitud.nombre || 'Usuario Eliminado (Ley 21.719)'}</strong>
+                </p>
                 <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.5' }}>
-                    Lamentamos informarle que su requerimiento de certificación de residencia administrado por <strong>{config.nombreJunta}</strong> ha sido rechazado tras la revisión de los documentos adjuntos.
+                    {esEliminadoLey21719 
+                        ? 'El vecino titular ejerció su Derecho de Supresión de Datos Personales (Art. 6° y 7° Ley 21.719). Las evidencias privadas en Cloudinary fueron destruidas de forma permanente.'
+                        : `Lamentamos informarle que su requerimiento de certificación de residencia administrado por ${config.nombreJunta} ha sido rechazado tras la revisión de los documentos adjuntos.`}
                 </p>
 
-                <div style={{ backgroundColor: '#fff5f5', padding: '15px', border: '1px solid #feb2b2', borderRadius: '8px', margin: '20px 0', color: '#9b2c2c', fontSize: '14px' }}>
-                    <strong>Motivo oficial indicado por el Operador:</strong><br />
-                    <p style={{ marginTop: '5px', fontStyle: 'italic', fontSize: '14px', color: '#7f1d1d', margin: 0 }}>
-                        "{solicitud.motivoRechazo || 'Documentación inconsistente con el domicilio declarado.'}"
+                <div style={{ backgroundColor: esEliminadoLey21719 ? '#fff1f2' : '#fff5f5', padding: '15px', border: esEliminadoLey21719 ? '1px solid #fecdd3' : '1px solid #feb2b2', borderRadius: '8px', margin: '20px 0', color: esEliminadoLey21719 ? '#991b1b' : '#9b2c2c', fontSize: '14px' }}>
+                    <strong>{esEliminadoLey21719 ? 'Causal Legal de Supresión y Observación:' : 'Motivo oficial indicado por el Operador:'}</strong><br />
+                    <p style={{ marginTop: '5px', fontStyle: 'italic', fontSize: '14px', color: esEliminadoLey21719 ? '#991b1b' : '#7f1d1d', margin: 0 }}>
+                        "{solicitud.motivoRechazo || 'Solicitud cancelada y datos personales eliminados a petición del vecino (Ley N° 21.719 - ARCOP)'}"
                     </p>
                 </div>
 
-                <p style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.5' }}>
-                    <strong>¿Cómo solucionar esto?</strong> No necesita pagar de nuevo. Modifique su archivo de respaldo según la instrucción indicada arriba y cargue nuevamente el trámite.
-                </p>
+                {!esEliminadoLey21719 && (
+                    <p style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.5' }}>
+                        <strong>¿Cómo solucionar esto?</strong> No necesita pagar de nuevo. Modifique su archivo de respaldo según la instrucción indicada arriba y cargue nuevamente el trámite.
+                    </p>
+                )}
             </div>
         );
     }

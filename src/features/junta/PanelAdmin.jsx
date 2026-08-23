@@ -103,7 +103,8 @@ export default function PanelAdmin({ listaSolicitudes, onActualizarEstado, onSim
                         <tbody>
                             {listaSolicitudes.map((sol) => {
                                 const keyUnica = sol._id || sol.id || `sol-${sol.correlativoSolicitud}`;
-                                const esPendiente = sol.estado === 'Pendiente';
+                                const esAnonimizado = !sol.nombre || sol.nombre.includes('Eliminado') || sol.motivoRechazo?.includes('21.719') || sol.correo?.includes('Anonimizado');
+                                const esPendiente = !esAnonimizado && sol.estado === 'Pendiente';
                                 const esAprobado  = sol.estado === 'Aprobado';
 
                                 return (
@@ -111,7 +112,7 @@ export default function PanelAdmin({ listaSolicitudes, onActualizarEstado, onSim
                                         key={keyUnica}
                                         style={{
                                             borderBottom: '1px solid #f1f5f9',
-                                            backgroundColor: esAprobado ? '#f0fdf4' : esPendiente ? '#fffbeb' : sol.estado === 'Rechazado' ? '#fef2f2' : '#fff',
+                                            backgroundColor: esAnonimizado ? '#fff5f5' : esAprobado ? '#f0fdf4' : esPendiente ? '#fffbeb' : sol.estado === 'Rechazado' ? '#fef2f2' : '#fff',
                                             transition: 'background 0.15s'
                                         }}
                                         onMouseEnter={e => e.currentTarget.style.filter = 'brightness(0.97)'}
@@ -125,21 +126,21 @@ export default function PanelAdmin({ listaSolicitudes, onActualizarEstado, onSim
                                             {sol.ingreso || '—'}
                                         </td>
 
-                                        <td style={{ ...tdStyle, fontWeight: '600', color: '#0f172a' }}>
-                                            {sol.nombre}
+                                        <td style={{ ...tdStyle, fontWeight: '600', color: esAnonimizado ? '#991b1b' : '#0f172a' }}>
+                                            {esAnonimizado ? '🛡️ Usuario Eliminado (Ley 21.719)' : sol.nombre}
                                         </td>
 
-                                        <td style={{ ...tdStyle, color: '#64748b' }}>
-                                            {sol.correo || sol.email}
+                                        <td style={{ ...tdStyle, color: esAnonimizado ? '#991b1b' : '#64748b', fontStyle: esAnonimizado ? 'italic' : 'normal' }}>
+                                            {esAnonimizado ? '[Anonimizado - ARCOP]' : (sol.correo || sol.email)}
                                         </td>
 
                                         <td style={tdStyle}>
                                             <span style={{
                                                 padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700',
-                                                backgroundColor: esAprobado ? '#dcfce7' : esPendiente ? '#fef3c7' : '#fee2e2',
-                                                color: esAprobado ? '#166534' : esPendiente ? '#92400e' : '#991b1b'
+                                                backgroundColor: esAnonimizado ? '#fee2e2' : esAprobado ? '#dcfce7' : esPendiente ? '#fef3c7' : '#fee2e2',
+                                                color: esAnonimizado ? '#991b1b' : esAprobado ? '#166534' : esPendiente ? '#92400e' : '#991b1b'
                                             }}>
-                                                {sol.estado}
+                                                {esAnonimizado ? 'Eliminado (Ley 21.719)' : sol.estado}
                                             </span>
                                         </td>
 
@@ -151,13 +152,13 @@ export default function PanelAdmin({ listaSolicitudes, onActualizarEstado, onSim
                                             <button
                                                 onClick={() => setSolicitudSeleccionada(sol)}
                                                 style={{
-                                                    background: esPendiente ? '#2563eb' : sol.estado === 'Rechazado' ? '#dc3545' : '#64748b',
+                                                    background: esAnonimizado ? '#991b1b' : esPendiente ? '#2563eb' : sol.estado === 'Rechazado' ? '#dc3545' : '#64748b',
                                                     color: 'white', padding: '6px 14px', border: 'none',
                                                     cursor: 'pointer', borderRadius: '6px', fontWeight: '600',
                                                     fontSize: '12px', whiteSpace: 'nowrap'
                                                 }}
                                             >
-                                                {esPendiente ? '🔍 Evaluar Evidencias' : sol.estado === 'Rechazado' ? '❌ Ver Rechazo' : '📄 Ver Certificado'}
+                                                {esAnonimizado ? '🛡️ Motivo Supresión' : esPendiente ? '🔍 Evaluar Evidencias' : sol.estado === 'Rechazado' ? '❌ Ver Rechazo' : '📄 Ver Certificado'}
                                             </button>
                                         </td>
                                     </tr>

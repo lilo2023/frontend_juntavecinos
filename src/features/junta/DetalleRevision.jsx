@@ -301,6 +301,54 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
 
     console.log("--- ENVIANDO AL VISOR ---", solicitud);
 
+    if (solicitud?.evidenciasCaducadas) {
+        return (
+            <div style={{ maxWidth: '650px', margin: '40px auto', padding: '30px', backgroundColor: '#fff', borderTop: '5px solid #0284c7', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontFamily: "'Outfit', Arial, sans-serif" }}>
+                {!soloLecturaVecino && (
+                    <button
+                        onClick={onVolver}
+                        style={{
+                            background: '#475569', color: 'white', border: 'none',
+                            padding: '8px 16px', borderRadius: '6px', cursor: 'pointer',
+                            fontWeight: '600', fontSize: '13px', marginBottom: '20px',
+                            display: 'flex', alignItems: 'center', gap: '6px'
+                        }}
+                    >
+                        ← Volver a la Bandeja
+                    </button>
+                )}
+                <h2 style={{ color: '#0369a1', fontSize: '20px', fontWeight: '700', marginTop: 0 }}>
+                    🕒 Evidencias Sensibles Depuradas (Ley N° 21.719)
+                </h2>
+                <p style={{ fontSize: '14px', color: '#1e293b' }}>
+                    Solicitud Folio: <strong>FOLIO-{solicitud.correlativoSolicitud}</strong> — Titular: <strong>{solicitud.nombre}</strong>
+                </p>
+
+                <div style={{ backgroundColor: '#f0f9ff', padding: '16px', border: '1px solid #bae6fd', borderRadius: '8px', margin: '20px 0', color: '#0369a1', fontSize: '14px', lineHeight: '1.5' }}>
+                    <strong>Depuración Automática por Caducidad Legal:</strong><br />
+                    Las imágenes de Cédula de Identidad y Comprobante de Domicilio fueron eliminadas permanentemente de la nube tras cumplirse el plazo máximo de conservación de 90 días (Art. 3° letra c y Art. 14 quinquies Ley 21.719).
+                </div>
+
+                {solicitud.urls?.certificado && (
+                    <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                        <a
+                            href={solicitud.urls.certificado}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                background: '#16a34a', color: 'white', textDecoration: 'none',
+                                padding: '10px 20px', borderRadius: '6px', fontWeight: 'bold', fontSize: '13px',
+                                display: 'inline-block'
+                            }}
+                        >
+                            📄 Ver Certificado Emitido
+                        </a>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     const esEliminadoLey21719 = solicitud?.estado === 'Eliminado' || !solicitud?.nombre || solicitud?.nombre.includes('Eliminado') || solicitud?.motivoRechazo?.includes('21.719');
 
     // --- RENDEREADO VISTA 2: CASO RECHAZADO / ANONIMIZADO / ELIMINADO ---

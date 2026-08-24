@@ -194,6 +194,11 @@ export default function MisSolicitudes({ solicitudes, cargando, onVerDetalle, on
                                             }}>
                                                 {sol.estado}
                                             </span>
+                                            {sol.evidenciasCaducadas && (
+                                                <div style={{ fontSize: '10px', color: '#0369a1', fontWeight: '600', marginTop: '4px' }}>
+                                                    🕒 Evidencias Caducadas
+                                                </div>
+                                            )}
                                         </td>
                                         <td style={{ padding: '16px', textAlign: 'right' }}>
                                             {isAprobada && (

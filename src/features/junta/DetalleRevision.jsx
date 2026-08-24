@@ -508,7 +508,13 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                                             style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '280px', display: 'block', objectFit: 'contain', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'zoom-in' }}
                                         />
                                     ) : (
-                                        <p style={{ color: '#dc3545', fontSize: '13px' }}>⚠️ No se encontró el enlace de la cédula.</p>
+                                        <div style={{ padding: '20px', backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', textAlign: 'center', color: '#0369a1', maxWidth: '400px' }}>
+                                            <div style={{ fontSize: '28px', marginBottom: '6px' }}>🕒</div>
+                                            <strong style={{ fontSize: '14px' }}>Evidencia Sensible Depurada (Ley N° 21.719)</strong>
+                                            <p style={{ margin: '6px 0 0 0', fontSize: '12px', lineHeight: '1.4' }}>
+                                                Las imágenes de Cédula de Identidad y Comprobante de Domicilio fueron eliminadas automáticamente tras cumplirse el plazo legal de conservación (Art. 3° c y Art. 14 quinquies).
+                                            </p>
+                                        </div>
                                     )}
                                 </div>
                             )}

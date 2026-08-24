@@ -162,6 +162,8 @@ function App() {
           ingreso: sol.createdAt 
             ? `${new Date(sol.createdAt).toLocaleDateString('es-CL')} ${new Date(sol.createdAt).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}` 
             : 'Reciente',
+          evidenciasCaducadas: sol.evidenciasCaducadas || false,
+          fechaCaducidadEvidencias: sol.fechaCaducidadEvidencias || null,
           urls: sol.urls || { cedula: '', domicilio: '', pago: '' }
         }));
 

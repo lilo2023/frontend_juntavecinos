@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import GuiaModulo from '../../components/GuiaModulo';
 
 export default function MisSolicitudes({ solicitudes, cargando, onVerDetalle, onNuevaSolicitud, onEditarSolicitud, userSession, onCerrarSesion }) {
     const [showModalSupresion, setShowModalSupresion] = useState(false);
@@ -89,6 +90,9 @@ export default function MisSolicitudes({ solicitudes, cargando, onVerDetalle, on
                     ＋ Nueva Solicitud
                 </button>
             </div>
+
+            {/* Guía de Uso Plegable para el Vecino */}
+            <GuiaModulo tipo="vecino" />
 
             {cargando ? (
                 <div style={{

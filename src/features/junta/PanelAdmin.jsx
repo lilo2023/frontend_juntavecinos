@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import DetalleRevision from './DetalleRevision';
+import GuiaModulo from '../../components/GuiaModulo';
 
 export default function PanelAdmin({ listaSolicitudes, onActualizarEstado, onSimularEmail, juntas }) {
     const [solicitudSeleccionada, setSolicitudSeleccionada] = useState(null);
@@ -69,6 +70,9 @@ export default function PanelAdmin({ listaSolicitudes, onActualizarEstado, onSim
                     ))}
                 </div>
             </div>
+
+            {/* Guía de Uso Plegable para el Operador de Junta */}
+            <GuiaModulo tipo="junta" />
 
             {/* Tabla o estado vacío */}
             {listaSolicitudes.length === 0 ? (

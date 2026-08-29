@@ -114,9 +114,7 @@ function App() {
   // Iniciar en true si hay sesión de junta activa para disparar el fetch al cargar
   const [debeCargar, setDebeCargar] = useState(() => {
     const saved = localStorage.getItem('user_session');
-    if (!saved) return false;
-    const user = JSON.parse(saved);
-    return user.role === 'junta';
+    return !!saved;
   });
 
   // Sincroniza juntas y carga la configuración de la junta activa al iniciar sesión
@@ -141,7 +139,14 @@ function App() {
 
     const cargarSolicitudesDesdeBD = async () => {
       try {
-        const respuesta = await fetch(getApiUrl());
+        let respuesta;
+        try {
+          respuesta = await fetch(getApiUrl());
+          if (!respuesta.ok) throw new Error('Error al conectar a servidor local');
+        } catch (errLocal) {
+          console.warn("⚠️ Servidor backend local (puerto 5000) no disponible. Conectando automáticamente a MongoDB Render en la nube...", errLocal);
+          respuesta = await fetch('https://backend-junta-vecinos.onrender.com/api/solicitudes');
+        }
         const datos = await respuesta.json();
 
         const solicitudesMapeadas = (Array.isArray(datos) ? datos : datos.data || []).map(sol => ({

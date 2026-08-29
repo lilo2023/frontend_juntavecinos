@@ -80,19 +80,19 @@ export default function GuiaModulo({ tipo = 'vecino' }) {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
                             <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e0f2fe' }}>
                                 <div style={{ fontWeight: '700', fontSize: '13px', color: '#0284c7', marginBottom: '4px' }}>
-                                    1️⃣ Completa tus Datos
+                                    1️⃣ Identifica tu Junta de Vecinos
                                 </div>
                                 <div style={{ fontSize: '12px', color: '#475569', lineHeight: '1.4' }}>
-                                    Ingresa tu RUT, nombre y dirección exacta dentro de la comuna de la Junta correspondiente.
+                                    Si no la conoces, búscala por tu dirección o ubicación en el mapa. Si la conoces, selecciónala de la lista desplegable.
                                 </div>
                             </div>
 
                             <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e0f2fe' }}>
                                 <div style={{ fontWeight: '700', fontSize: '13px', color: '#0284c7', marginBottom: '4px' }}>
-                                    2️⃣ Adjunta tus Evidencias
+                                    2️⃣ Formulario y Evidencias
                                 </div>
                                 <div style={{ fontSize: '12px', color: '#475569', lineHeight: '1.4' }}>
-                                    Sube fotos o PDF claros de tu Cédula de Identidad y un Comprobante de Domicilio reciente.
+                                    Ingresa tu RUT, datos de residencia y sube fotos de tu Cédula de Identidad y Comprobante de Domicilio.
                                 </div>
                             </div>
 
@@ -101,7 +101,7 @@ export default function GuiaModulo({ tipo = 'vecino' }) {
                                     3️⃣ Descarga tu Certificado
                                 </div>
                                 <div style={{ fontSize: '12px', color: '#475569', lineHeight: '1.4' }}>
-                                    Una vez validado por la Junta, descarga tu certificado PDF firmado digitalmente con folio único.
+                                    Una vez validado por la Junta de Vecinos, descarga tu certificado PDF firmado digitalmente con folio único.
                                 </div>
                             </div>
                         </div>

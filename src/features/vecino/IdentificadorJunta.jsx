@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { juntasDeVecinosNunoa } from './juntasData';
 import { nunoaPolygons, isPointInPolygon } from './nunoaPolygonsData';
+import GuiaModulo from '../../components/GuiaModulo';
 
 // Haversine formula to calculate distance in km between two coordinates
 function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
@@ -342,6 +343,9 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
 
     return (
         <div style={{ padding: '0 20px' }}>
+            <div style={{ maxWidth: '550px', margin: '0 auto' }}>
+                <GuiaModulo tipo="vecino" />
+            </div>
             <div style={cardStyle}>
                 
                 {/* 1. INICIO STEP: QUESTION */}

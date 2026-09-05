@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { juntasDeVecinosNunoa } from '../vecino/juntasData';
 import { nunoaPolygons, isPointInPolygon } from '../vecino/nunoaPolygonsData';
+import { resolverJuntaPorArteria, aplicarOffsetParidad } from '../vecino/resolutorTerritorial';
 
 // Haversine formula to calculate distance in km between two coordinates
 function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
@@ -83,17 +84,42 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
             setGeoError(null);
 
             try {
+                const dirStr = solicitud?.direccion || '';
+                const idJuntaOperador = juntaConfig?.id || solicitud?.idJunta || 'jjvv19';
+                const juntaOperadorData = juntasDeVecinosNunoa.find(j => j.id === idJuntaOperador) || juntasDeVecinosNunoa.find(j => j.id === 'jjvv19');
+
+                // 0. Resolución Determinística por Arteria Limítrofe y Paridad (Grecia, Irarrázaval, Alessandri)
+                const resolucionArteria = resolverJuntaPorArteria(dirStr);
+                if (resolucionArteria) {
+                    console.log("🎯 DetalleRevision: Coincidencia por Regla Arterial:", resolucionArteria.detalle);
+                    setGeoResult({
+                        lat: resolucionArteria.lat,
+                        lng: resolucionArteria.lng,
+                        juntaSugerida: resolucionArteria.juntaSugerida,
+                        juntaOperadorData,
+                        displayName: resolucionArteria.detalle,
+                        metodo: resolucionArteria.metodo,
+                        detalleArteria: resolucionArteria.detalle
+                    });
+                    return;
+                }
+
                 // Limpiar dirección e incluir comuna para Nominatim (remueve Depto, Torre, etc.)
                 let comuna = config?.comuna || 'Ñuñoa';
-                let query = limpiarDireccionParaGeocoding(solicitud.direccion, comuna);
+                let query = limpiarDireccionParaGeocoding(dirStr, comuna);
                 
                 console.log("Validando dirección territorial limpia:", query);
                 const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`);
                 const data = await res.json();
 
                 if (data && data.length > 0) {
-                    const lat = parseFloat(data[0].lat);
-                    const lng = parseFloat(data[0].lon);
+                    let lat = parseFloat(data[0].lat);
+                    let lng = parseFloat(data[0].lon);
+
+                    // Ajuste fino de paridad (Vereda Norte vs Sur) si aplica
+                    const coordsAjustadas = aplicarOffsetParidad(lat, lng, dirStr);
+                    lat = coordsAjustadas.lat;
+                    lng = coordsAjustadas.lng;
 
                     // 1. Evaluación por polígono territorial oficial de Ñuñoa (Point-in-Polygon)
                     let juntaEncontrada = null;
@@ -119,9 +145,6 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                             }
                         });
                     }
-
-                    const idJuntaOperador = juntaConfig?.id || solicitud?.idJunta || 'jjvv19';
-                    const juntaOperadorData = juntasDeVecinosNunoa.find(j => j.id === idJuntaOperador) || juntasDeVecinosNunoa.find(j => j.id === 'jjvv19');
 
                     setGeoResult({
                         lat,
@@ -669,7 +692,7 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                                             {/* Detalles y comparaciones */}
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '12px' }}>
                                                 <div style={{ padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#fff' }}>
-                                                    <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>📍 Junta Correspondiente por Polígono:</span>
+                                                    <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>📍 Junta Correspondiente {geoResult.metodo?.startsWith('arteria') ? 'por Arteria/Paridad' : 'por Polígono'}:</span>
                                                     <strong style={{ fontSize: '13px', color: '#1e293b' }}>{geoResult.juntaSugerida.name}</strong>
                                                 </div>
 
@@ -678,6 +701,16 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                                                     <strong style={{ fontSize: '13px', color: '#1e293b' }}>{geoResult.juntaOperadorData ? geoResult.juntaOperadorData.name : config.nombreJunta}</strong>
                                                 </div>
                                             </div>
+
+                                            {geoResult.detalleArteria && (
+                                                <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', padding: '10px 14px', borderRadius: '8px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <span style={{ fontSize: '16px' }}>📐</span>
+                                                    <div>
+                                                        <strong style={{ display: 'block', marginBottom: '2px' }}>Regla Fina de Eje Limítrofe:</strong>
+                                                        <span>{geoResult.detalleArteria}</span>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {/* Observación sugerida para el operador */}
                                             {(() => {

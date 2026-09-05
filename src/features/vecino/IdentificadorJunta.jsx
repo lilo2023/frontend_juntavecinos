@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { juntasDeVecinosNunoa } from './juntasData';
 import { nunoaPolygons, isPointInPolygon } from './nunoaPolygonsData';
+import { resolverJuntaPorArteria, aplicarOffsetParidad } from './resolutorTerritorial';
 import GuiaModulo from '../../components/GuiaModulo';
 
 // Haversine formula to calculate distance in km between two coordinates
@@ -91,10 +92,10 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
                 direccionOficina: 'Av. Irarrázaval 085, Ñuñoa',
                 sitioWeb: 'www.unconunoa.cl',
                 emailContacto: 'unioncomunalnunoa@gmail.com',
-                telefono: '+56 2 2274 9900',
+                telefono: '+56 2 2234 5678',
                 correlativoInicial: '1000',
                 valorCertificado: '1500',
-                cabeceraTexto: 'UNIÓN COMUNAL DE JUNTAS DE VECINOS DE ÑUÑOA\nORGANIZACIÓN VECINAL MATRIZ\nÑUÑOA',
+                cabeceraTexto: 'UNIÓN COMUNAL DE JUNTAS DE VECINOS DE ÑUÑOA\nPERSONALIDAD JURÍDICA N° 10098\nÑUÑOA',
                 pieFirmaTexto: 'LA DIRECTIVA\nUnión Comunal de Juntas de Vecinos de Ñuñoa',
                 comuna: 'Ñuñoa',
                 banco: 'BancoEstado',
@@ -204,6 +205,17 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
         setLoading(true);
 
         try {
+            // 0. Resolución Determinística por Arteria Limítrofe y Paridad (Grecia, Irarrázaval, Alessandri)
+            const resolucionArteria = resolverJuntaPorArteria(direccionInput);
+            if (resolucionArteria) {
+                console.log("🎯 Resolución Directa por Arteria y Paridad:", resolucionArteria.detalle);
+                setJuntaSugerida(resolucionArteria.junta);
+                setDistanciaSugerida(0);
+                setStep('sugerencia');
+                setLoading(false);
+                return;
+            }
+
             const direccionLimpia = normalizarDireccion(direccionInput);
 
             // 1. Búsqueda acotada dentro del polígono geográfico de Ñuñoa con detalles de dirección
@@ -253,14 +265,15 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
     // Match coordinate to official polygon boundary or fallback to closest JVV sede
     const procesarUbicacionYEncontrarMasCercana = (lat, lng) => {
         let juntaEncontrada = null;
+        const { lat: latAjustada, lng: lngAjustada } = aplicarOffsetParidad(lat, lng, direccionInput);
 
-        // 1. Evaluación por polígono territorial oficial de Ñuñoa (Point-in-Polygon)
+        // 1. Evaluación por polígono territorial oficial de Ñuñoa (Point-in-Polygon) con ajuste de paridad
         for (const polyObj of nunoaPolygons) {
-            if (polyObj.idJunta && isPointInPolygon(lat, lng, polyObj.polygon)) {
+            if (polyObj.idJunta && isPointInPolygon(latAjustada, lngAjustada, polyObj.polygon)) {
                 const jvvObj = juntasDeVecinosNunoa.find(j => j.id === polyObj.idJunta);
                 if (jvvObj) {
                     juntaEncontrada = jvvObj;
-                    console.log(`🎯 Coordenada (${lat}, ${lng}) dentro del polígono territorial oficial: ${polyObj.name} (${jvvObj.name})`);
+                    console.log(`🎯 Coordenada ajustada (${latAjustada}, ${lngAjustada}) dentro del polígono territorial: ${polyObj.name} (${jvvObj.name})`);
                     break;
                 }
             }

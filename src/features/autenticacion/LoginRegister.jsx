@@ -272,7 +272,7 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
             };
             const allVecinos = [demoVecino, ...savedVecinos];
             let account = allVecinos.find(
-                (v) => v.email.toLowerCase() === inputEmail
+                (v) => v.email && v.email.toLowerCase() === inputEmail
             );
 
             if (account) {

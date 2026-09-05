@@ -133,36 +133,35 @@ export default function FormularioSolicitud(props) {
 
     const cargarDatosDemo = async () => {
         setFormData({
-            nombre: 'Danilo Marcelo Godoy Díaz',
-            rut: '10.703.900-7',
-            email: 'danilogodoyd@gmail.com',
-            direccion: 'Avenida Grecia 3348, Depto 1713',
+            nombre: 'Alonso Bastián Godoy Vega',
+            rut: '22.587.871-4',
+            email: 'alogodoy@correo.com',
+            direccion: 'Avenida Grecia 3348, Depto 1713, Torre A',
             comuna: infoJunta.comuna || 'Ñuñoa',
-            calidadResidente: 'Propietario',
-            destino: 'Universidad Andrés Bello',
+            calidadResidente: 'Arrendatario',
+            destino: 'Universidad',
             montoPago: infoJunta.valorCertificado || '1000',
-            tipoDocDomicilio: 'Certificado AFP'
+            tipoDocDomicilio: 'Cuenta de Luz'
         });
         setRutError(false);
 
         try {
             const baseUrl = process.env.PUBLIC_URL || '';
 
-            // Cédula y comprobante de pago son imágenes JPG
-            const [resCedula, resPago] = await Promise.all([
+            // Cédula, comprobante de pago y cuenta de luz (domicilio)
+            const [resCedula, resPago, resDomicilio] = await Promise.all([
                 fetch(`${baseUrl}/demo_cedula.jpg`),
-                fetch(`${baseUrl}/demo_pago.jpg`)
+                fetch(`${baseUrl}/demo_pago.jpg`),
+                fetch(`${baseUrl}/demo_domicilio.png`)
             ]);
 
             const blobCedula = await resCedula.blob();
             const blobPago = await resPago.blob();
-            const fileCedula = new File([blobCedula], 'cedula_danilo.jpg', { type: 'image/jpeg' });
-            const filePago = new File([blobPago], 'comprobante_pago_itau.jpg', { type: 'image/jpeg' });
-
-            // El comprobante de domicilio es un PDF
-            const resDomicilio = await fetch(`${baseUrl}/demo_domicilio.pdf`);
             const blobDomicilio = await resDomicilio.blob();
-            const fileDomicilio = new File([blobDomicilio], 'certificado_afp_cuprum.pdf', { type: 'application/pdf' });
+
+            const fileCedula = new File([blobCedula], 'cedula_alonso.jpg', { type: 'image/jpeg' });
+            const filePago = new File([blobPago], 'comprobante_pago_itau.jpg', { type: 'image/jpeg' });
+            const fileDomicilio = new File([blobDomicilio], 'cuenta_luz_enel.png', { type: 'image/png' });
 
             setArchivosRaw({
                 cedula: fileCedula,
@@ -172,8 +171,7 @@ export default function FormularioSolicitud(props) {
 
             setUrlsTemporales({
                 cedula: URL.createObjectURL(fileCedula),
-                // Para PDF: usar la URL directa al archivo público para que el visor PDF del navegador lo abra correctamente
-                domicilio: `${baseUrl}/demo_domicilio.pdf`,
+                domicilio: URL.createObjectURL(fileDomicilio),
                 comprobantePago: URL.createObjectURL(filePago)
             });
         } catch (err) {
@@ -469,7 +467,7 @@ export default function FormularioSolicitud(props) {
                         <h3 style={{ fontSize: '15px', color: '#34495e', margin: 0 }}>1. Identificación y Domicilio</h3>
                         <button
                             type="button"
-                            title="Autocompletar datos de Danilo y adjuntar documentos demo"
+                            title="Autocompletar datos de Alonso y adjuntar documentos demo"
                             onClick={cargarDatosDemo}
                             disabled={isSubiendo}
                             style={{

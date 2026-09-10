@@ -262,17 +262,10 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                 }
             }
 
-            // 2. Fallback a cuentas locales en localStorage (o cuenta demo)
+            // 2. Fallback a cuentas registradas localmente en localStorage
             const savedVecinos = JSON.parse(localStorage.getItem('vecinos_cuentas') || '[]');
-            const demoVecino = {
-                nombre: 'Danilo Marcelo Godoy Díaz',
-                rut: '10.703.900-7',
-                email: 'danilo.godoy@alumnos.unab.cl',
-                password: 'vecino'
-            };
-            const allVecinos = [demoVecino, ...savedVecinos];
-            let account = allVecinos.find(
-                (v) => v.email && v.email.toLowerCase() === inputEmail
+            let account = savedVecinos.find(
+                (v) => v.email && v.email.toLowerCase() === inputEmail && v.password === inputPass
             );
 
             if (account) {

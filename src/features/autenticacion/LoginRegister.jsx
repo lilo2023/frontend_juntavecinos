@@ -280,7 +280,7 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                 onLoginSuccess(sessionData);
                 return;
             } else {
-                setErrorMessage('Correo o contraseña incorrectos. Para probar, usa: danilo.godoy@alumnos.unab.cl / vecino');
+                setErrorMessage('Correo electrónico o contraseña incorrectos.');
                 return;
             }
         } else {
@@ -1459,31 +1459,24 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                 )}
             </div>
 
-            {/* Hint Box for Testing */}
-            <div style={{
-                maxWidth: '450px',
-                width: '100%',
-                backgroundColor: '#f8fafc',
-                border: '1px dashed #cbd5e1',
-                padding: '16px',
-                borderRadius: '12px',
-                fontSize: '13px',
-                color: '#475569',
-                lineHeight: '1.5'
-            }}>
-                {role === 'vecino' ? (
-                    <>
-                        💡 <strong>Residente de Prueba:</strong><br />
-                        • <strong>Correo:</strong> <code>danilogodoyd@gmail.com</code> / contraseña: <code>prueba#1</code>
-                    </>
-                ) : (
-                    <>
-                        💡 <strong>Operadores de Juntas de Vecinos:</strong><br />
-                        • <strong>JJVV N° 19 Universidad:</strong> <code>jvuniversidad19@gmail.com</code> / contraseña: <code>junta1</code><br />
-                        • <strong>Unión Comunal Ñuñoa:</strong> <code>unioncomunalnunoa@gmail.com</code> / contraseña: <code>junta2</code>
-                    </>
-                )}
-            </div>
+            {/* Hint Box para Operadores de Juntas de Vecinos (Acceso Demo) */}
+            {role === 'junta' && (
+                <div style={{
+                    maxWidth: '450px',
+                    width: '100%',
+                    backgroundColor: '#f8fafc',
+                    border: '1px dashed #cbd5e1',
+                    padding: '16px',
+                    borderRadius: '12px',
+                    fontSize: '13px',
+                    color: '#475569',
+                    lineHeight: '1.5'
+                }}>
+                    💡 <strong>Operadores de Juntas de Vecinos (Acceso Demo):</strong><br />
+                    • <strong>JJVV N° 19 Universidad:</strong> <code>jvuniversidad19@gmail.com</code> (Clave: <code>junta1</code>)<br />
+                    • <strong>Unión Comunal Ñuñoa:</strong> <code>unioncomunalnunoa@gmail.com</code> (Clave: <code>junta2</code>)
+                </div>
+            )}
 
             {/* Modal de Política de Privacidad */}
             <ModalPoliticaPrivacidad 

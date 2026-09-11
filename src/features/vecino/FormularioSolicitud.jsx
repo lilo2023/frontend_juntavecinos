@@ -57,6 +57,7 @@ const getApiUrl = () => {
 export default function FormularioSolicitud(props) {
     const infoJunta = useMemo(() => {
         const baseConfig = props.juntaConfig || {
+            id: 'jjvv19',
             nombreJunta: 'Junta de Vecinos Universidad',
             rutJunta: '65.033.930-4',
             banco: 'Banco Estado',
@@ -67,15 +68,42 @@ export default function FormularioSolicitud(props) {
             emailContacto: 'jvuniversidad19@gmail.com'
         };
 
-        return {
-            ...baseConfig,
-            nombreJunta: baseConfig.nombreJunta || 'Junta de Vecinos Universidad',
-            rutJunta: baseConfig.rutJunta || '65.033.930-4',
-            banco: (!baseConfig.banco || baseConfig.banco === 'Banco del Estado de Chile' || baseConfig.numeroCuenta === '123456789' || baseConfig.numeroCuenta === '987654321') ? 'Banco Estado' : baseConfig.banco,
-            tipoCuenta: (!baseConfig.tipoCuenta || baseConfig.tipoCuenta === 'Cuenta Vista / RUT' || baseConfig.tipoCuenta === 'Cuenta Corriente' || baseConfig.numeroCuenta === '123456789' || baseConfig.numeroCuenta === '987654321') ? 'Cta. de Ahorro' : baseConfig.tipoCuenta,
-            numeroCuenta: (!baseConfig.numeroCuenta || baseConfig.numeroCuenta === '123456789' || baseConfig.numeroCuenta === '987654321') ? '30560085059' : baseConfig.numeroCuenta,
-            emailContacto: baseConfig.emailContacto || 'jvuniversidad19@gmail.com'
-        };
+        const esUnion = baseConfig.id === 'unionComunal' || 
+            (baseConfig.nombreJunta && baseConfig.nombreJunta.toLowerCase().includes('comunal'));
+
+        if (esUnion) {
+            return {
+                ...baseConfig,
+                id: 'unionComunal',
+                nombreJunta: 'Unión Comunal de Juntas de Vecinos de Ñuñoa',
+                rutJunta: '71.564.900-4',
+                banco: 'Banco Estado',
+                tipoCuenta: 'Cta. Cte.',
+                numeroCuenta: '5127301',
+                emailContacto: 'certificadosresidencianunoa@gmail.com',
+                comentarioTransferencia: 'Certificado de residencia',
+                valorCertificado: baseConfig.valorCertificado || '1500'
+            };
+        }
+
+        const esJunta19 = baseConfig.id === 'jjvv19' || !baseConfig.id || 
+            (baseConfig.nombreJunta && baseConfig.nombreJunta.toLowerCase().includes('universidad'));
+
+        if (esJunta19) {
+            return {
+                ...baseConfig,
+                id: 'jjvv19',
+                nombreJunta: 'Junta de Vecinos Universidad',
+                rutJunta: '65.033.930-4',
+                banco: 'Banco Estado',
+                tipoCuenta: 'Cta. de Ahorro',
+                numeroCuenta: '30560085059',
+                emailContacto: 'jvuniversidad19@gmail.com',
+                valorCertificado: baseConfig.valorCertificado || '1000'
+            };
+        }
+
+        return baseConfig;
     }, [props.juntaConfig]);
 
     const [formData, setFormData] = useState({
@@ -487,7 +515,14 @@ export default function FormularioSolicitud(props) {
                                         { label: 'Banco', valor: infoJunta.banco, campo: 'banco' },
                                         { label: 'Tipo Cuenta', valor: infoJunta.tipoCuenta, campo: 'tipoCuenta' },
                                         { label: 'N° Cuenta', valor: infoJunta.numeroCuenta, campo: 'cuenta', isMono: true, isDestacado: true },
-                                        { label: 'Email para el Banco', valor: infoJunta.emailContacto, campo: 'email', isMono: true, nota: '(Ingrese este correo en su banco para notificar la transferencia automáticamente)' }
+                                        { label: 'Email para el Banco', valor: infoJunta.emailContacto, campo: 'email', isMono: true, nota: '(Ingrese este correo en su banco para notificar la transferencia automáticamente)' },
+                                        ...(infoJunta.comentarioTransferencia ? [{
+                                            label: 'Comentario / Asunto',
+                                            valor: infoJunta.comentarioTransferencia,
+                                            campo: 'comentario',
+                                            isDestacado: true,
+                                            nota: '(Indicar obligatoriamente en el detalle o asunto de la transferencia bancaria)'
+                                        }] : [])
                                     ].map((item, idx, arr) => (
                                         <div
                                             key={item.campo}
@@ -713,6 +748,12 @@ export default function FormularioSolicitud(props) {
                             <span>📢 <strong>Cuenta:</strong> {infoJunta.banco} · {infoJunta.tipoCuenta} · <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#0369a1' }}>{infoJunta.numeroCuenta}</span></span>
                             <span style={{ color: '#94a3b8' }}>|</span>
                             <span>📧 <span style={{ fontFamily: 'monospace', color: '#c05621', fontWeight: 'bold' }}>{infoJunta.emailContacto}</span></span>
+                            {infoJunta.comentarioTransferencia && (
+                                <>
+                                    <span style={{ color: '#94a3b8' }}>|</span>
+                                    <span>📝 <strong>Comentario:</strong> <span style={{ color: '#0369a1', fontWeight: 'bold' }}>{infoJunta.comentarioTransferencia}</span></span>
+                                </>
+                            )}
                         </div>
                     )}
 

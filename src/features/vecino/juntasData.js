@@ -36,5 +36,5 @@ export const juntasDeVecinosNunoa = [
   { id: "jjvv35", name: "35- Exequiel González Cortés", lat: -33.4696821, lng: -70.620991, email: "yogurtdemora@yahoo.es", address: "Exequiel González Cortés, Ñuñoa", val: "1000" },
   { id: "jjvv36", name: "36- La Portada", lat: -33.4655223, lng: -70.6254844, email: "laportadadenunoa@gmail.com", address: "La Portada, Ñuñoa", val: "1000" },
   { id: "jjvv37", name: "37- Bernardo O'Higgins", lat: -33.4709211, lng: -70.6185754, email: "jv37bernardoohiggins@gmail.com", address: "Bernardo O'Higgins, Ñuñoa", val: "1000" },
-  { id: "unionComunal", name: "Unión Comunal de Juntas de Vecinos de Ñuñoa", lat: -33.452444, lng: -70.6294953, email: "unioncomunalnunoa@gmail.com", address: "Av. Irarrázaval 085, Ñuñoa", val: "1500" }
+  { id: "unionComunal", name: "Unión Comunal de Juntas de Vecinos de Ñuñoa", lat: -33.452444, lng: -70.6294953, email: "certificadosresidencianunoa@gmail.com", address: "Av. Irarrázaval 085, Ñuñoa", val: "1500" }
 ];

@@ -87,20 +87,21 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
             return {
                 id: 'unionComunal',
                 nombreJunta: 'Unión Comunal de Juntas de Vecinos de Ñuñoa',
-                rutJunta: '70.123.999-5',
+                rutJunta: '71.564.900-4',
                 personalidadJuridica: 'RNPJSFL 10098',
                 direccionOficina: 'Av. Irarrázaval 085, Ñuñoa',
                 sitioWeb: 'www.unconunoa.cl',
-                emailContacto: 'unioncomunalnunoa@gmail.com',
+                emailContacto: 'certificadosresidencianunoa@gmail.com',
                 telefono: '+56 2 2234 5678',
                 correlativoInicial: '1000',
                 valorCertificado: '1500',
                 cabeceraTexto: 'UNIÓN COMUNAL DE JUNTAS DE VECINOS DE ÑUÑOA\nPERSONALIDAD JURÍDICA N° 10098\nÑUÑOA',
                 pieFirmaTexto: 'LA DIRECTIVA\nUnión Comunal de Juntas de Vecinos de Ñuñoa',
                 comuna: 'Ñuñoa',
-                banco: 'BancoEstado',
-                tipoCuenta: 'Cuenta Corriente',
-                numeroCuenta: '1900-5544-22',
+                banco: 'Banco Estado',
+                tipoCuenta: 'Cta. Cte.',
+                numeroCuenta: '5127301',
+                comentarioTransferencia: 'Certificado de residencia',
                 direccionConsultada: dirConsultada
             };
         }

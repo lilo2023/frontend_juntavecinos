@@ -34,16 +34,17 @@ const entidadesPreconfiguradas = {
     personalidadJuridica: 'RNPJSFL 211394',
     direccionOficina: 'Av. Irarrázaval 085, Ñuñoa',
     sitioWeb: 'www.unioncomunalnunoa.cl',
-    emailContacto: 'unioncomunalnunoa@gmail.com',
+    emailContacto: 'certificadosresidencianunoa@gmail.com',
     telefono: '+56 2 2322 2985',
     correlativoInicial: '03489',
     valorCertificado: '1500',
     cabeceraTexto: 'UNIÓN COMUNAL DE JUNTAS DE VECINOS DE ÑUÑOA\nRUT 71.564.900-4 - RNPJSFL 211394\nAV. IRARRÁZAVAL 085 ÑUÑOA',
     pieFirmaTexto: 'Presidente o director de turno\nUNIÓN COMUNAL DE JJ.VV. ÑUÑOA',
     comuna: 'Ñuñoa',
-    banco: 'Banco de Chile',
-    tipoCuenta: 'Cuenta Corriente',
-    numeroCuenta: '112233445'
+    banco: 'Banco Estado',
+    tipoCuenta: 'Cta. Cte.',
+    numeroCuenta: '5127301',
+    comentarioTransferencia: 'Certificado de residencia'
   },
   nuevaJunta: {
     id: 'nuevaJunta',
@@ -99,11 +100,24 @@ function App() {
   const [juntas, setJuntas] = useState(() => {
     const guardadas = localStorage.getItem('saas_juntas');
     const guardadasParsed = guardadas ? JSON.parse(guardadas) : {};
+    let huboCambio = false;
     if (guardadasParsed.jjvv19 && (guardadasParsed.jjvv19.numeroCuenta === '123456789' || guardadasParsed.jjvv19.numeroCuenta === '987654321' || !guardadasParsed.jjvv19.numeroCuenta)) {
       guardadasParsed.jjvv19.numeroCuenta = '30560085059';
       guardadasParsed.jjvv19.banco = 'Banco Estado';
       guardadasParsed.jjvv19.tipoCuenta = 'Cta. de Ahorro';
       guardadasParsed.jjvv19.nombreJunta = 'Junta de Vecinos Universidad';
+      huboCambio = true;
+    }
+    if (guardadasParsed.unionComunal && (guardadasParsed.unionComunal.numeroCuenta === '1900-5544-22' || guardadasParsed.unionComunal.numeroCuenta === '112233445' || !guardadasParsed.unionComunal.numeroCuenta || guardadasParsed.unionComunal.tipoCuenta === 'Cta. de Ahorro' || guardadasParsed.unionComunal.emailContacto === 'unioncomunalnunoa@gmail.com')) {
+      guardadasParsed.unionComunal.numeroCuenta = '5127301';
+      guardadasParsed.unionComunal.banco = 'Banco Estado';
+      guardadasParsed.unionComunal.tipoCuenta = 'Cta. Cte.';
+      guardadasParsed.unionComunal.rutJunta = '71.564.900-4';
+      guardadasParsed.unionComunal.emailContacto = 'certificadosresidencianunoa@gmail.com';
+      guardadasParsed.unionComunal.comentarioTransferencia = 'Certificado de residencia';
+      huboCambio = true;
+    }
+    if (huboCambio) {
       localStorage.setItem('saas_juntas', JSON.stringify(guardadasParsed));
     }
     // Siempre fusionar: las preconfiguradas son la base, localStorage las complementa/sobreescribe
@@ -128,11 +142,24 @@ function App() {
   useEffect(() => {
     const guardadas = localStorage.getItem('saas_juntas');
     const guardadasParsed = guardadas ? JSON.parse(guardadas) : {};
+    let huboCambio = false;
     if (guardadasParsed.jjvv19 && (guardadasParsed.jjvv19.numeroCuenta === '123456789' || guardadasParsed.jjvv19.numeroCuenta === '987654321' || !guardadasParsed.jjvv19.numeroCuenta)) {
       guardadasParsed.jjvv19.numeroCuenta = '30560085059';
       guardadasParsed.jjvv19.banco = 'Banco Estado';
       guardadasParsed.jjvv19.tipoCuenta = 'Cta. de Ahorro';
       guardadasParsed.jjvv19.nombreJunta = 'Junta de Vecinos Universidad';
+      huboCambio = true;
+    }
+    if (guardadasParsed.unionComunal && (guardadasParsed.unionComunal.numeroCuenta === '1900-5544-22' || guardadasParsed.unionComunal.numeroCuenta === '112233445' || !guardadasParsed.unionComunal.numeroCuenta || guardadasParsed.unionComunal.tipoCuenta === 'Cta. de Ahorro' || guardadasParsed.unionComunal.emailContacto === 'unioncomunalnunoa@gmail.com')) {
+      guardadasParsed.unionComunal.numeroCuenta = '5127301';
+      guardadasParsed.unionComunal.banco = 'Banco Estado';
+      guardadasParsed.unionComunal.tipoCuenta = 'Cta. Cte.';
+      guardadasParsed.unionComunal.rutJunta = '71.564.900-4';
+      guardadasParsed.unionComunal.emailContacto = 'certificadosresidencianunoa@gmail.com';
+      guardadasParsed.unionComunal.comentarioTransferencia = 'Certificado de residencia';
+      huboCambio = true;
+    }
+    if (huboCambio) {
       localStorage.setItem('saas_juntas', JSON.stringify(guardadasParsed));
     }
     // Fusionar siempre para no perder las preconfiguradas

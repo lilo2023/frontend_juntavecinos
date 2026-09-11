@@ -40,6 +40,7 @@ function limpiarDireccionParaGeocoding(direccionTexto, comunaDefault = 'Ñuñoa'
 
 export default function DetalleRevision({ solicitud, onActualizarEstado, onVolver, soloLecturaVecino = false, juntaConfig }) {
     const [docActivo, setDocActivo] = useState('cedula');
+    const [subDocCedula, setSubDocCedula] = useState('frente'); // 'frente' | 'reverso'
     const [motivoRechazo, setMotivoRechazo] = useState('');
     const [mostrarBloqueRechazo, setMostrarBloqueRechazo] = useState(false);
     const [imagenZoom, setImagenZoom] = useState(null);
@@ -519,28 +520,60 @@ export default function DetalleRevision({ solicitud, onActualizarEstado, onVolve
                                 </span>
                             )}
 
-                            {/* PESTAÑA 1: CÉDULA */}
-                            {docActivo === 'cedula' && (
-                                <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
-                                    <p style={{ fontWeight: 'bold', color: '#64748b', marginBottom: '8px', fontSize: '13px' }}>Cédula de Identidad Cargada:</p>
-                                    {solicitud?.urls?.cedula || solicitud?.urlCedula ? (
-                                        <img
-                                            src={solicitud?.urls?.cedula || solicitud?.urlCedula}
-                                            alt="Cédula de Identidad"
-                                            onClick={() => setImagenZoom(solicitud?.urls?.cedula || solicitud?.urlCedula)}
-                                            style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '280px', display: 'block', objectFit: 'contain', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'zoom-in' }}
-                                        />
-                                    ) : (
-                                        <div style={{ padding: '20px', backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', textAlign: 'center', color: '#0369a1', maxWidth: '400px' }}>
-                                            <div style={{ fontSize: '28px', marginBottom: '6px' }}>🕒</div>
-                                            <strong style={{ fontSize: '14px' }}>Evidencia Sensible Depurada (Ley N° 21.719)</strong>
-                                            <p style={{ margin: '6px 0 0 0', fontSize: '12px', lineHeight: '1.4' }}>
-                                                Las imágenes de Cédula de Identidad y Comprobante de Domicilio fueron eliminadas automáticamente tras cumplirse el plazo legal de conservación (Art. 3° c y Art. 14 quinquies).
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                            {/* PESTAÑA 1: CÉDULA (con sub-visor Frente / Reverso) */}
+                            {docActivo === 'cedula' && (() => {
+                                const urlFrente  = solicitud?.urls?.cedula      || solicitud?.urlCedula;
+                                const urlReverso = solicitud?.urls?.cedulaReverso;
+                                const tieneReverso = !!urlReverso;
+                                // Imagen a mostrar según sub-tab activo
+                                const urlActiva = (tieneReverso && subDocCedula === 'reverso') ? urlReverso : urlFrente;
+
+                                return (
+                                    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
+
+                                        {/* Sub-botones Frente / Reverso (solo si existen ambas imágenes) */}
+                                        {tieneReverso && (
+                                            <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSubDocCedula('frente')}
+                                                    style={{ padding: '5px 16px', fontSize: '12px', fontWeight: 'bold', borderRadius: '4px', border: '1px solid #ccc', cursor: 'pointer', background: subDocCedula === 'frente' ? '#0369a1' : '#f1f5f9', color: subDocCedula === 'frente' ? '#fff' : '#334155' }}
+                                                >
+                                                    🪪 Frente
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSubDocCedula('reverso')}
+                                                    style={{ padding: '5px 16px', fontSize: '12px', fontWeight: 'bold', borderRadius: '4px', border: '1px solid #ccc', cursor: 'pointer', background: subDocCedula === 'reverso' ? '#0369a1' : '#f1f5f9', color: subDocCedula === 'reverso' ? '#fff' : '#334155' }}
+                                                >
+                                                    🪪 Reverso
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        <p style={{ fontWeight: 'bold', color: '#64748b', marginBottom: '8px', fontSize: '13px' }}>
+                                            Cédula de Identidad{tieneReverso ? (subDocCedula === 'frente' ? ' — Frente' : ' — Reverso') : ' Cargada'}:
+                                        </p>
+
+                                        {urlActiva ? (
+                                            <img
+                                                src={urlActiva}
+                                                alt={tieneReverso ? `Cédula ${subDocCedula}` : 'Cédula de Identidad'}
+                                                onClick={() => setImagenZoom(urlActiva)}
+                                                style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '280px', display: 'block', objectFit: 'contain', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'zoom-in' }}
+                                            />
+                                        ) : (
+                                            <div style={{ padding: '20px', backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', textAlign: 'center', color: '#0369a1', maxWidth: '400px' }}>
+                                                <div style={{ fontSize: '28px', marginBottom: '6px' }}>🕒</div>
+                                                <strong style={{ fontSize: '14px' }}>Evidencia Sensible Depurada (Ley N° 21.719)</strong>
+                                                <p style={{ margin: '6px 0 0 0', fontSize: '12px', lineHeight: '1.4' }}>
+                                                    Las imágenes de Cédula de Identidad y Comprobante de Domicilio fueron eliminadas automáticamente tras cumplirse el plazo legal de conservación (Art. 3° c y Art. 14 quinquies).
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
 
                             {/* PESTAÑA 2: DOMICILIO (imagen o PDF) */}
                             {docActivo === 'domicilio' && (

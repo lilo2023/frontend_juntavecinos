@@ -80,15 +80,17 @@ export default function FormularioSolicitud(props) {
     const [aceptaPolitica, setAceptaPolitica] = useState(false);
     const [showModalPolitica, setShowModalPolitica] = useState(false);
 
-    // 📁 NUEVOS ESTADOS COMPLEMENTARIOS PARA ARCHIVOS REALES (BINARIOS CRUDOS)
+    // 📁 ESTADOS PARA ARCHIVOS REALES (BINARIOS CRUDOS)
     const [archivosRaw, setArchivosRaw] = useState({
         cedula: null,
+        cedulaReverso: null,
         domicilio: null,
         comprobantePago: null
     });
 
     const [urlsTemporales, setUrlsTemporales] = useState({
         cedula: '',
+        cedulaReverso: '',
         domicilio: '',
         comprobantePago: ''
     });
@@ -249,8 +251,8 @@ export default function FormularioSolicitud(props) {
         }
 
         const esEdicion = !!props.solicitudAEditar;
-        if (!esEdicion && (!archivosRaw.cedula || !archivosRaw.domicilio || !archivosRaw.comprobantePago)) {
-            alert('Por favor, adjunte los tres documentos requeridos (Cédula, Acreditación y Comprobante).');
+        if (!esEdicion && (!archivosRaw.cedula || !archivosRaw.cedulaReverso || !archivosRaw.domicilio || !archivosRaw.comprobantePago)) {
+            alert('Por favor, adjunte los 4 documentos requeridos:\n• Cédula de Identidad (Frente)\n• Cédula de Identidad (Reverso)\n• Comprobante de Domicilio\n• Comprobante de Pago');
             return;
         }
 
@@ -260,21 +262,20 @@ export default function FormularioSolicitud(props) {
         setIsSubiendo(true);
 
         let cloudCedulaUrl = "";
+        let cloudCedulaReversoUrl = "";
         let cloudDomicilioUrl = "";
         let cloudPagoUrl = "";
 
         try {
-            if (archivosRaw.cedula) {
-                cloudCedulaUrl = await subirACloudinary(archivosRaw.cedula);
-            }
-            if (archivosRaw.domicilio) {
-                cloudDomicilioUrl = await subirACloudinary(archivosRaw.domicilio);
-            }
-            if (archivosRaw.comprobantePago) {
-                cloudPagoUrl = await subirACloudinary(archivosRaw.comprobantePago);
-            }
+            // Subida en paralelo de los 4 documentos
+            [cloudCedulaUrl, cloudCedulaReversoUrl, cloudDomicilioUrl, cloudPagoUrl] = await Promise.all([
+                archivosRaw.cedula          ? subirACloudinary(archivosRaw.cedula)          : Promise.resolve(""),
+                archivosRaw.cedulaReverso   ? subirACloudinary(archivosRaw.cedulaReverso)   : Promise.resolve(""),
+                archivosRaw.domicilio       ? subirACloudinary(archivosRaw.domicilio)       : Promise.resolve(""),
+                archivosRaw.comprobantePago ? subirACloudinary(archivosRaw.comprobantePago) : Promise.resolve(""),
+            ]);
 
-            if (!esEdicion && (!cloudCedulaUrl || !cloudDomicilioUrl || !cloudPagoUrl)) {
+            if (!esEdicion && (!cloudCedulaUrl || !cloudCedulaReversoUrl || !cloudDomicilioUrl || !cloudPagoUrl)) {
                 throw new Error("Una o más imágenes no pudieron procesarse en la nube.");
             }
         } catch (errorCloud) {
@@ -316,9 +317,10 @@ export default function FormularioSolicitud(props) {
             tipoResidente: formData.calidadResidente === 'Familiar del propietario' ? 'Familiar' : formData.calidadResidente,
             
             urls: {
-                cedula: cloudCedulaUrl || (esEdicion ? props.solicitudAEditar.urls?.cedula : ''),
-                domicilio: cloudDomicilioUrl || (esEdicion ? props.solicitudAEditar.urls?.domicilio : ''),
-                pago: cloudPagoUrl || (esEdicion ? props.solicitudAEditar.urls?.pago : '')
+                cedula:        cloudCedulaUrl       || (esEdicion ? props.solicitudAEditar.urls?.cedula        : ''),
+                cedulaReverso: cloudCedulaReversoUrl || (esEdicion ? props.solicitudAEditar.urls?.cedulaReverso : ''),
+                domicilio:     cloudDomicilioUrl     || (esEdicion ? props.solicitudAEditar.urls?.domicilio     : ''),
+                pago:          cloudPagoUrl          || (esEdicion ? props.solicitudAEditar.urls?.pago          : '')
             },
             tipoDocDomicilio: formData.tipoDocDomicilio || 'Doc. Domicilio',
             aceptaTratamientoDatos: true,
@@ -362,9 +364,10 @@ export default function FormularioSolicitud(props) {
                         email: formData.email,
                         direccion: formData.direccion,
                         urls: {
-                            cedula: cloudCedulaUrl || resultado.data?.urls?.cedula || (esEdicion ? props.solicitudAEditar.urls?.cedula : ''),
-                            domicilio: cloudDomicilioUrl || resultado.data?.urls?.domicilio || (esEdicion ? props.solicitudAEditar.urls?.domicilio : ''),
-                            pago: cloudPagoUrl || resultado.data?.urls?.pago || (esEdicion ? props.solicitudAEditar.urls?.pago : '')
+                            cedula:        cloudCedulaUrl       || resultado.data?.urls?.cedula        || (esEdicion ? props.solicitudAEditar.urls?.cedula        : ''),
+                            cedulaReverso: cloudCedulaReversoUrl || resultado.data?.urls?.cedulaReverso || (esEdicion ? props.solicitudAEditar.urls?.cedulaReverso : ''),
+                            domicilio:     cloudDomicilioUrl     || resultado.data?.urls?.domicilio     || (esEdicion ? props.solicitudAEditar.urls?.domicilio     : ''),
+                            pago:          cloudPagoUrl          || resultado.data?.urls?.pago          || (esEdicion ? props.solicitudAEditar.urls?.pago          : '')
                         }
                     };
                     props.onEnviar(solicitudNormalizadaParaFrontend);
@@ -377,8 +380,8 @@ export default function FormularioSolicitud(props) {
                     destino: '', montoPago: infoJunta.valorCertificado || '0',
                     tipoDocDomicilio: 'Boleta de Servicio'
                 });
-                setArchivosRaw({ cedula: null, domicilio: null, comprobantePago: null });
-                setUrlsTemporales({ cedula: '', domicilio: '', comprobantePago: '' });
+                setArchivosRaw({ cedula: null, cedulaReverso: null, domicilio: null, comprobantePago: null });
+                setUrlsTemporales({ cedula: '', cedulaReverso: '', domicilio: '', comprobantePago: '' });
                 setRutError(false);
             } else {
                 alert(`⚠️ Atención: ${resultado.msg || 'Error al guardar los datos'}`);
@@ -424,7 +427,7 @@ export default function FormularioSolicitud(props) {
                     Para llenar la solicitud de Certificado de Residencia, asegúrate de <strong>tener listas en tu dispositivo las siguientes 3 imágenes o documentos (JPG, PNG o PDF)</strong> antes de enviar el formulario:
                 </p>
                 <ol style={{ margin: '0 0 8px 18px', padding: 0 }}>
-                    <li style={{ marginBottom: '6px' }}>🪪 <strong>1. Cédula de Identidad:</strong> Imagen legible por ambos lados (frente y reverso).</li>
+                    <li style={{ marginBottom: '6px' }}>🪪 <strong>1. Cédula de Identidad — Frente y Reverso:</strong> Necesitas <strong>2 fotos separadas</strong>: una del frente y otra del reverso de tu carnet.</li>
                     <li style={{ marginBottom: '6px' }}>📄 <strong>2. Comprobante de Domicilio:</strong> Cuenta de servicio (luz, agua, gas, internet), contrato de arriendo o similar a tu nombre.</li>
                     <li style={{ marginBottom: '6px' }}>
                         💳 <strong>3. Comprobante de Transferencia:</strong> Foto o PDF del comprobante de transferencia por el arancel de <strong>{renderArancel()}</strong> realizado a la cuenta bancaria de la Junta:
@@ -455,7 +458,7 @@ export default function FormularioSolicitud(props) {
                     </li>
                 </ol>
                 <span style={{ fontSize: '12px', color: '#0369a1', fontWeight: '500' }}>
-                    💡 <em>Tip: Si ya tienes las 3 fotos o archivos guardados en tu equipo, completarás la solicitud en menos de 2 minutos.</em>
+                    💡 <em>Tip: Si ya tienes las 4 fotos o archivos guardados en tu equipo, completarás la solicitud en menos de 2 minutos.</em>
                 </span>
             </div>
 
@@ -561,8 +564,11 @@ export default function FormularioSolicitud(props) {
                 <div>
                     <h3 style={{ fontSize: '15px', color: '#34495e', margin: '15px 0 10px 0' }}>2. Documentos de Respaldo</h3>
 
-                    <div style={{ marginBottom: '15px' }}>
-                        <label style={{ display: 'block', margin: '0 0 5px 0', fontWeight: '500', fontSize: '14px' }}>Cédula de Identidad (Ambos lados):</label>
+                    {/* CÉDULA FRENTE */}
+                    <div style={{ marginBottom: '10px', padding: '10px 12px', backgroundColor: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                        <label style={{ display: 'block', margin: '0 0 5px 0', fontWeight: '600', fontSize: '14px', color: '#0369a1' }}>
+                            🪪 Cédula de Identidad — <strong>FRENTE</strong>:
+                        </label>
                         <input
                             type="file"
                             name="cedula"
@@ -574,8 +580,30 @@ export default function FormularioSolicitud(props) {
                         />
                         {urlsTemporales.cedula && (
                             <div style={{ marginTop: '6px', fontSize: '12px', color: '#16a34a', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>✅ Cédula de Identidad cargada</span>
-                                <a href={urlsTemporales.cedula} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontSize: '11px', textDecoration: 'underline' }}>(Ver vista previa)</a>
+                                <span>✅ Frente cargado</span>
+                                <a href={urlsTemporales.cedula} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontSize: '11px', textDecoration: 'underline' }}>(Ver)</a>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* CÉDULA REVERSO */}
+                    <div style={{ marginBottom: '15px', padding: '10px 12px', backgroundColor: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                        <label style={{ display: 'block', margin: '0 0 5px 0', fontWeight: '600', fontSize: '14px', color: '#0369a1' }}>
+                            🪪 Cédula de Identidad — <strong>REVERSO</strong>:
+                        </label>
+                        <input
+                            type="file"
+                            name="cedulaReverso"
+                            onChange={handleFileChange}
+                            accept="image/*"
+                            required={!props.solicitudAEditar && !archivosRaw.cedulaReverso}
+                            disabled={isSubiendo}
+                            style={{ width: '100%', fontSize: '13px' }}
+                        />
+                        {urlsTemporales.cedulaReverso && (
+                            <div style={{ marginTop: '6px', fontSize: '12px', color: '#16a34a', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>✅ Reverso cargado</span>
+                                <a href={urlsTemporales.cedulaReverso} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontSize: '11px', textDecoration: 'underline' }}>(Ver)</a>
                             </div>
                         )}
                     </div>

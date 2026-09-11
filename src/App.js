@@ -11,7 +11,7 @@ import IdentificadorJunta from './features/vecino/IdentificadorJunta';
 const entidadesPreconfiguradas = {
   jjvv19: {
     id: 'jjvv19',
-    nombreJunta: 'Junta de Vecinos "Universidad" N° 19',
+    nombreJunta: 'Junta de Vecinos Universidad',
     rutJunta: '65.033.930-4',
     personalidadJuridica: 'RNPJSFL 211394',
     direccionOficina: 'Av. José Pedro Alessandri 1036',
@@ -23,9 +23,9 @@ const entidadesPreconfiguradas = {
     cabeceraTexto: 'JUNTA DE VECINOS "UNIVERSIDAD"\nUNIDAD VECINAL N° 19\nÑUÑOA',
     pieFirmaTexto: 'LA DIRECTIVA\nJunta de Vecinos Universidad UV 19',
     comuna: 'Ñuñoa',
-    banco: 'Banco del Estado de Chile',
-    tipoCuenta: 'Cuenta Corriente',
-    numeroCuenta: '987654321'
+    banco: 'Banco Estado',
+    tipoCuenta: 'Cta. de Ahorro',
+    numeroCuenta: '30560085059'
   },
   unionComunal: {
     id: 'unionComunal',
@@ -99,6 +99,13 @@ function App() {
   const [juntas, setJuntas] = useState(() => {
     const guardadas = localStorage.getItem('saas_juntas');
     const guardadasParsed = guardadas ? JSON.parse(guardadas) : {};
+    if (guardadasParsed.jjvv19 && (guardadasParsed.jjvv19.numeroCuenta === '123456789' || guardadasParsed.jjvv19.numeroCuenta === '987654321' || !guardadasParsed.jjvv19.numeroCuenta)) {
+      guardadasParsed.jjvv19.numeroCuenta = '30560085059';
+      guardadasParsed.jjvv19.banco = 'Banco Estado';
+      guardadasParsed.jjvv19.tipoCuenta = 'Cta. de Ahorro';
+      guardadasParsed.jjvv19.nombreJunta = 'Junta de Vecinos Universidad';
+      localStorage.setItem('saas_juntas', JSON.stringify(guardadasParsed));
+    }
     // Siempre fusionar: las preconfiguradas son la base, localStorage las complementa/sobreescribe
     return { ...entidadesPreconfiguradas, ...guardadasParsed };
   });
@@ -121,6 +128,13 @@ function App() {
   useEffect(() => {
     const guardadas = localStorage.getItem('saas_juntas');
     const guardadasParsed = guardadas ? JSON.parse(guardadas) : {};
+    if (guardadasParsed.jjvv19 && (guardadasParsed.jjvv19.numeroCuenta === '123456789' || guardadasParsed.jjvv19.numeroCuenta === '987654321' || !guardadasParsed.jjvv19.numeroCuenta)) {
+      guardadasParsed.jjvv19.numeroCuenta = '30560085059';
+      guardadasParsed.jjvv19.banco = 'Banco Estado';
+      guardadasParsed.jjvv19.tipoCuenta = 'Cta. de Ahorro';
+      guardadasParsed.jjvv19.nombreJunta = 'Junta de Vecinos Universidad';
+      localStorage.setItem('saas_juntas', JSON.stringify(guardadasParsed));
+    }
     // Fusionar siempre para no perder las preconfiguradas
     const pooljuntas = { ...entidadesPreconfiguradas, ...guardadasParsed };
     setJuntas(pooljuntas);

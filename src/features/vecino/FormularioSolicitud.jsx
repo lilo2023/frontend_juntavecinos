@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import ModalPoliticaPrivacidad from '../../components/ModalPoliticaPrivacidad';
 
 // ==========================================
@@ -16,34 +16,35 @@ const formatearRut = (rut) => {
         cuerpo = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         return `${cuerpo}-${dv}`;
     }
-    return dv;
+    return valor;
 };
 
 const validarRutChileno = (rutCompleto) => {
-    if (!rutCompleto || rutCompleto.length < 3) return false;
+    if (!rutCompleto || typeof rutCompleto !== 'string') return false;
+    const limpio = rutCompleto.replace(/[^0-9kK]/g, '').toUpperCase();
+    if (limpio.length < 2) return false;
 
-    const tmp = rutCompleto.replace(/[^0-9kK]/g, '').toUpperCase();
-    const cuerpo = tmp.slice(0, -1);
-    let dv = tmp.slice(-1);
-
-    if (cuerpo.length < 7) return false;
+    const cuerpo = limpio.slice(0, -1);
+    const dv = limpio.slice(-1);
 
     let suma = 0;
     let multiplo = 2;
 
     for (let i = cuerpo.length - 1; i >= 0; i--) {
-        suma += multiplo * parseInt(cuerpo.charAt(i));
-        multiplo = multiplo === 7 ? 2 : multiplo + 1;
+        suma += parseInt(cuerpo.charAt(i), 10) * multiplo;
+        multiplo = multiplo < 7 ? multiplo + 1 : 2;
     }
 
-    let dvEsperado = 11 - (suma % 11);
-    if (dvEsperado === 11) dvEsperado = '0';
-    else if (dvEsperado === 10) dvEsperado = 'K';
-    else dvEsperado = dvEsperado.toString();
+    const dvEsperado = 11 - (suma % 11);
+    let dvCalculado = '';
+    if (dvEsperado === 11) dvCalculado = '0';
+    else if (dvEsperado === 10) dvCalculado = 'K';
+    else dvCalculado = dvEsperado.toString();
 
-    return dv === dvEsperado;
+    return dv === dvCalculado;
 };
 
+// URL de la API del Backend (auto-adaptable)
 const getApiUrl = () => {
     return window.location.hostname === 'localhost'
         ? 'http://localhost:5000/api/solicitudes'
@@ -54,12 +55,28 @@ const getApiUrl = () => {
 // COMPONENTE PRINCIPAL (PORTAL DEL VECINO)
 // ==========================================
 export default function FormularioSolicitud(props) {
-    const infoJunta = props.juntaConfig || {
-        nombreJunta: 'Junta de Vecinos "Universidad" N° 19',
-        valorCertificado: '1000',
-        comuna: 'Ñuñoa',
-        emailContacto: 'jvuniversidad19@gmail.com'
-    };
+    const infoJunta = useMemo(() => {
+        const baseConfig = props.juntaConfig || {
+            nombreJunta: 'Junta de Vecinos Universidad',
+            rutJunta: '65.033.930-4',
+            banco: 'Banco Estado',
+            tipoCuenta: 'Cta. de Ahorro',
+            numeroCuenta: '30560085059',
+            valorCertificado: '1000',
+            comuna: 'Ñuñoa',
+            emailContacto: 'jvuniversidad19@gmail.com'
+        };
+
+        return {
+            ...baseConfig,
+            nombreJunta: baseConfig.nombreJunta || 'Junta de Vecinos Universidad',
+            rutJunta: baseConfig.rutJunta || '65.033.930-4',
+            banco: (!baseConfig.banco || baseConfig.banco === 'Banco del Estado de Chile' || baseConfig.numeroCuenta === '123456789' || baseConfig.numeroCuenta === '987654321') ? 'Banco Estado' : baseConfig.banco,
+            tipoCuenta: (!baseConfig.tipoCuenta || baseConfig.tipoCuenta === 'Cuenta Vista / RUT' || baseConfig.tipoCuenta === 'Cuenta Corriente' || baseConfig.numeroCuenta === '123456789' || baseConfig.numeroCuenta === '987654321') ? 'Cta. de Ahorro' : baseConfig.tipoCuenta,
+            numeroCuenta: (!baseConfig.numeroCuenta || baseConfig.numeroCuenta === '123456789' || baseConfig.numeroCuenta === '987654321') ? '30560085059' : baseConfig.numeroCuenta,
+            emailContacto: baseConfig.emailContacto || 'jvuniversidad19@gmail.com'
+        };
+    }, [props.juntaConfig]);
 
     const [formData, setFormData] = useState({
         nombre: props.userSession?.nombre || '',
@@ -403,20 +420,69 @@ export default function FormularioSolicitud(props) {
     // Estado y función para feedback de copiado al portapapeles
     const [copiadoCampo, setCopiadoCampo] = useState(null);
     const copiarAlPortapapeles = (texto, campo) => {
-        navigator.clipboard.writeText(texto).then(() => {
+        if (!texto) return;
+        const textoStr = String(texto).trim();
+        const ejecutarFeedback = () => {
             setCopiadoCampo(campo);
             setTimeout(() => setCopiadoCampo(null), 2000);
-        }).catch(() => {
-            // Fallback para navegadores sin soporte a clipboard API
+        };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textoStr).then(ejecutarFeedback).catch(() => {
+                fallbackCopiar(textoStr, ejecutarFeedback);
+            });
+        } else {
+            fallbackCopiar(textoStr, ejecutarFeedback);
+        }
+    };
+
+    const fallbackCopiar = (textoStr, callback) => {
+        try {
             const el = document.createElement('textarea');
-            el.value = texto;
+            el.value = textoStr;
+            el.setAttribute('readonly', '');
+            el.style.position = 'absolute';
+            el.style.left = '-9999px';
             document.body.appendChild(el);
             el.select();
             document.execCommand('copy');
             document.body.removeChild(el);
-            setCopiadoCampo(campo);
-            setTimeout(() => setCopiadoCampo(null), 2000);
-        });
+            if (callback) callback();
+        } catch (err) {
+            console.error('Error al copiar:', err);
+        }
+    };
+
+    const renderBotonCopiar = (valor, campo, label) => {
+        const estaCopiado = copiadoCampo === campo;
+        return (
+            <button
+                type="button"
+                onClick={() => copiarAlPortapapeles(valor, campo)}
+                title={`Copiar ${label}`}
+                style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                    width: '84px',
+                    height: '26px',
+                    padding: '0 6px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    borderRadius: '5px',
+                    border: estaCopiado ? '1px solid #86efac' : '1px solid #cbd5e1',
+                    backgroundColor: estaCopiado ? '#dcfce7' : '#f8fafc',
+                    color: estaCopiado ? '#15803d' : '#334155',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    flexShrink: 0,
+                    boxSizing: 'border-box'
+                }}
+            >
+                {estaCopiado ? '✓ ¡Copiado!' : '📋 Copiar'}
+            </button>
+        );
     };
 
     return (
@@ -451,43 +517,63 @@ export default function FormularioSolicitud(props) {
                     <li style={{ marginBottom: '6px' }}>
                         💳 <strong>3. Comprobante de Transferencia:</strong> Foto o PDF del comprobante de transferencia por el arancel de <strong>{renderArancel()}</strong> realizado a la cuenta bancaria de la Junta:
                         {infoJunta.banco ? (
-                            <div style={{ backgroundColor: '#fff', border: '1px solid #bae6fd', padding: '10px 14px', borderRadius: '8px', marginTop: '8px', marginBottom: '8px', fontSize: '12px', color: '#1e293b', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                                <div style={{ fontWeight: 'bold', color: '#0369a1', marginBottom: '8px', fontSize: '13px' }}>
-                                    📢 Datos para realizar la Transferencia Bancaria:
+                            <div style={{ backgroundColor: '#fff', border: '1px solid #bae6fd', borderRadius: '8px', marginTop: '10px', marginBottom: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                <div style={{ backgroundColor: '#eff6ff', padding: '8px 14px', borderBottom: '1px solid #bae6fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                                    <strong style={{ color: '#0369a1', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        📢 Datos para realizar la Transferencia Bancaria:
+                                    </strong>
+                                    <span style={{ fontSize: '11px', color: '#64748b' }}>
+                                        Haz clic en <strong>Copiar</strong> para pegar en tu app bancaria
+                                    </span>
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', lineHeight: '1.6' }}>
-                                    <div><strong>Destinatario:</strong> {infoJunta.nombreJunta}</div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <strong>RUT:</strong> {infoJunta.rutJunta}
-                                        <button type="button" onClick={() => copiarAlPortapapeles(infoJunta.rutJunta, 'rut')}
-                                            title="Copiar RUT"
-                                            style={{ border: 'none', background: copiadoCampo === 'rut' ? '#dcfce7' : '#e0f2fe', color: copiadoCampo === 'rut' ? '#16a34a' : '#0369a1', borderRadius: '4px', padding: '1px 7px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
-                                            {copiadoCampo === 'rut' ? '✓ Copiado' : '📋 Copiar'}
-                                        </button>
-                                    </div>
-                                    <div><strong>Banco:</strong> <span style={{ color: '#0284c7', fontWeight: 'bold' }}>{infoJunta.banco}</span></div>
-                                    <div><strong>Tipo Cuenta:</strong> {infoJunta.tipoCuenta}</div>
-                                    <div style={{ gridColumn: 'span 2', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                        <strong>N° Cuenta:</strong>
-                                        <span style={{ fontFamily: 'monospace', fontSize: '14px', fontWeight: 'bold', backgroundColor: '#e0f2fe', padding: '2px 8px', borderRadius: '4px', color: '#0369a1', letterSpacing: '0.05em' }}>{infoJunta.numeroCuenta}</span>
-                                        <button type="button" onClick={() => copiarAlPortapapeles(infoJunta.numeroCuenta, 'cuenta')}
-                                            title="Copiar número de cuenta"
-                                            style={{ border: 'none', background: copiadoCampo === 'cuenta' ? '#dcfce7' : '#0369a1', color: copiadoCampo === 'cuenta' ? '#16a34a' : '#fff', borderRadius: '5px', padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }}>
-                                            {copiadoCampo === 'cuenta' ? '✓ ¡Copiado!' : '📋 Copiar N° Cuenta'}
-                                        </button>
-                                    </div>
-                                </div>
-                                <div style={{ marginTop: '8px', padding: '6px 10px', backgroundColor: '#fffaf0', border: '1px solid #feebc8', borderRadius: '6px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                    <div>
-                                        <strong style={{ color: '#dd6b20' }}>📧 Correo destino para el Banco:</strong>{' '}
-                                        <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#c05621' }}>{infoJunta.emailContacto}</span>
-                                        <span style={{ display: 'block', color: '#718096', fontSize: '10.5px', marginTop: '1px' }}>(Ingrese este correo en su banco para notificar la transferencia automáticamente)</span>
-                                    </div>
-                                    <button type="button" onClick={() => copiarAlPortapapeles(infoJunta.emailContacto, 'email')}
-                                        title="Copiar correo del banco"
-                                        style={{ border: 'none', background: copiadoCampo === 'email' ? '#dcfce7' : '#fef3c7', color: copiadoCampo === 'email' ? '#16a34a' : '#92400e', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s', flexShrink: 0 }}>
-                                        {copiadoCampo === 'email' ? '✓ Copiado' : '📋 Copiar'}
-                                    </button>
+                                <div style={{ padding: '4px 14px' }}>
+                                    {[
+                                        { label: 'Destinatario', valor: infoJunta.nombreJunta, campo: 'nombre' },
+                                        { label: 'RUT', valor: infoJunta.rutJunta, campo: 'rut', isMono: true },
+                                        { label: 'Banco', valor: infoJunta.banco, campo: 'banco' },
+                                        { label: 'Tipo Cuenta', valor: infoJunta.tipoCuenta, campo: 'tipoCuenta' },
+                                        { label: 'N° Cuenta', valor: infoJunta.numeroCuenta, campo: 'cuenta', isMono: true, isDestacado: true },
+                                        { label: 'Email para el Banco', valor: infoJunta.emailContacto, campo: 'email', isMono: true, nota: '(Ingrese este correo en su banco para notificar la transferencia automáticamente)' }
+                                    ].map((item, idx, arr) => (
+                                        <div
+                                            key={item.campo}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                padding: '7px 0',
+                                                borderBottom: idx < arr.length - 1 ? '1px solid #f1f5f9' : 'none',
+                                                gap: '12px'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                    <span style={{ color: '#64748b', fontSize: '12px', width: '130px', flexShrink: 0, fontWeight: '500' }}>
+                                                        {item.label}:
+                                                    </span>
+                                                    <span style={{
+                                                        color: item.isDestacado ? '#0369a1' : '#1e293b',
+                                                        fontSize: item.isDestacado ? '13.5px' : '12px',
+                                                        fontWeight: item.isDestacado ? 'bold' : '600',
+                                                        fontFamily: item.isMono ? 'monospace' : 'inherit',
+                                                        backgroundColor: item.isDestacado ? '#e0f2fe' : 'transparent',
+                                                        padding: item.isDestacado ? '2px 8px' : '0',
+                                                        borderRadius: item.isDestacado ? '4px' : '0',
+                                                        letterSpacing: item.isDestacado ? '0.04em' : 'normal',
+                                                        wordBreak: 'break-all'
+                                                    }}>
+                                                        {item.valor}
+                                                    </span>
+                                                </div>
+                                                {item.nota && (
+                                                    <span style={{ fontSize: '10.5px', color: '#94a3b8', marginLeft: '138px', marginTop: '1px' }}>
+                                                        {item.nota}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {renderBotonCopiar(item.valor, item.campo, item.label)}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         ) : (
@@ -680,7 +766,7 @@ export default function FormularioSolicitud(props) {
                         </div>
                         {urlsTemporales.domicilio && (
                             <div style={{ marginTop: '6px', fontSize: '12px', color: '#16a34a', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>✅ Comprobante de Domicilio (AFP Cuprum) cargado</span>
+                                <span>✅ Comprobante de Domicilio cargado</span>
                                 <a href={urlsTemporales.domicilio} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontSize: '11px', textDecoration: 'underline' }}>(Ver vista previa)</a>
                             </div>
                         )}
@@ -718,7 +804,7 @@ export default function FormularioSolicitud(props) {
                     />
                     {urlsTemporales.comprobantePago && (
                         <div style={{ marginTop: '6px', fontSize: '12px', color: '#16a34a', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span>✅ Comprobante de Transferencia (Itaú) cargado</span>
+                            <span>✅ Comprobante de Transferencia cargado</span>
                             <a href={urlsTemporales.comprobantePago} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontSize: '11px', textDecoration: 'underline' }}>(Ver vista previa)</a>
                         </div>
                     )}

@@ -108,7 +108,7 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
         if (jvv.id === 'jjvv19') {
             return {
                 id: 'jjvv19',
-                nombreJunta: 'Junta de Vecinos N° 19 Universidad',
+                nombreJunta: 'Junta de Vecinos Universidad',
                 rutJunta: '65.033.930-4',
                 personalidadJuridica: 'RNPJSFL 211394',
                 direccionOficina: 'Av. José Pedro Alessandri 1036, Ñuñoa',
@@ -117,12 +117,12 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
                 telefono: '+56 2 2894 5764',
                 correlativoInicial: '1000',
                 valorCertificado: '1000',
-                cabeceraTexto: 'JUNTA DE VECINOS N° 19 UNIVERSIDAD\nUNIDAD VECINAL N° 19\nÑUÑOA',
-                pieFirmaTexto: 'LA DIRECTIVA\nJunta de Vecinos N° 19 Universidad',
+                cabeceraTexto: 'JUNTA DE VECINOS UNIVERSIDAD\nUNIDAD VECINAL N° 19\nÑUÑOA',
+                pieFirmaTexto: 'LA DIRECTIVA\nJunta de Vecinos Universidad',
                 comuna: 'Ñuñoa',
-                banco: 'Banco del Estado de Chile',
-                tipoCuenta: 'Cuenta Vista / RUT',
-                numeroCuenta: '123456789',
+                banco: 'Banco Estado',
+                tipoCuenta: 'Cta. de Ahorro',
+                numeroCuenta: '30560085059',
                 direccionConsultada: dirConsultada
             };
         }
@@ -141,9 +141,9 @@ export default function IdentificadorJunta({ onConfirmarJunta }) {
             cabeceraTexto: `JUNTA DE VECINOS ${jvv.name.toUpperCase()}\nUNIDAD VECINAL\nÑUÑOA`,
             pieFirmaTexto: `LA DIRECTIVA\nJunta de Vecinos ${jvv.name}`,
             comuna: 'Ñuñoa',
-            banco: 'Banco del Estado de Chile',
-            tipoCuenta: 'Cuenta Vista / RUT',
-            numeroCuenta: '123456789',
+            banco: 'Banco Estado',
+            tipoCuenta: 'Cta. de Ahorro',
+            numeroCuenta: '30560085059',
             direccionConsultada: dirConsultada
         };
     };

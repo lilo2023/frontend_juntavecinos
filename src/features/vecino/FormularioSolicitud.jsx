@@ -150,53 +150,7 @@ export default function FormularioSolicitud(props) {
         }
     }, [props.solicitudAEditar, infoJunta]);
 
-    const cargarDatosDemo = async () => {
-        setFormData({
-            nombre: 'Alonso Bastián Godoy Vega',
-            rut: '22.587.871-4',
-            email: 'alogodoy@correo.com',
-            direccion: 'Avenida Grecia 3348, Depto 1713, Torre A',
-            comuna: infoJunta.comuna || 'Ñuñoa',
-            calidadResidente: 'Arrendatario',
-            destino: 'Universidad',
-            montoPago: infoJunta.valorCertificado || '1000',
-            tipoDocDomicilio: 'Cuenta de Luz'
-        });
-        setRutError(false);
 
-        try {
-            const baseUrl = process.env.PUBLIC_URL || '';
-
-            // Cédula, comprobante de pago y cuenta de luz (domicilio)
-            const [resCedula, resPago, resDomicilio] = await Promise.all([
-                fetch(`${baseUrl}/demo_cedula.jpg`),
-                fetch(`${baseUrl}/demo_pago.jpg`),
-                fetch(`${baseUrl}/demo_domicilio.png`)
-            ]);
-
-            const blobCedula = await resCedula.blob();
-            const blobPago = await resPago.blob();
-            const blobDomicilio = await resDomicilio.blob();
-
-            const fileCedula = new File([blobCedula], 'cedula_alonso.jpg', { type: 'image/jpeg' });
-            const filePago = new File([blobPago], 'comprobante_pago_itau.jpg', { type: 'image/jpeg' });
-            const fileDomicilio = new File([blobDomicilio], 'cuenta_luz_enel.png', { type: 'image/png' });
-
-            setArchivosRaw({
-                cedula: fileCedula,
-                domicilio: fileDomicilio,
-                comprobantePago: filePago
-            });
-
-            setUrlsTemporales({
-                cedula: URL.createObjectURL(fileCedula),
-                domicilio: URL.createObjectURL(fileDomicilio),
-                comprobantePago: URL.createObjectURL(filePago)
-            });
-        } catch (err) {
-            console.error("Error al cargar documentos demo:", err);
-        }
-    };
 
     const subirACloudinary = async (file) => {
         if (!file) return "";
@@ -592,36 +546,8 @@ export default function FormularioSolicitud(props) {
 
                 {/* SECCIÓN 1: IDENTIFICACIÓN */}
                 <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <div style={{ marginBottom: '10px' }}>
                         <h3 style={{ fontSize: '15px', color: '#34495e', margin: 0 }}>1. Identificación y Domicilio</h3>
-                        <button
-                            type="button"
-                            title="Autocompletar datos de Alonso y adjuntar documentos demo"
-                            onClick={cargarDatosDemo}
-                            disabled={isSubiendo}
-                            style={{
-                                width: '36px',
-                                height: '36px',
-                                minWidth: '36px',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontSize: '18px',
-                                fontWeight: '800',
-                                cursor: isSubiendo ? 'not-allowed' : 'pointer',
-                                color: '#ffffff',
-                                backgroundColor: '#7c3aed',
-                                boxShadow: '0 4px 10px rgba(124, 58, 237, 0.35)',
-                                fontFamily: "'Outfit', sans-serif",
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                transition: 'background-color 0.2s, transform 0.1s'
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#6d28d9'; e.currentTarget.style.transform = 'scale(1.05)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#7c3aed'; e.currentTarget.style.transform = 'scale(1)'; }}
-                        >
-                            A
-                        </button>
                     </div>
 
                     <label style={{ fontWeight: '500', fontSize: '14px' }}>Nombre Completo:</label>

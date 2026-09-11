@@ -336,7 +336,7 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                         cargo: account.cargo || 'Presidente'
                     };
                 } else {
-                    setErrorMessage('Credenciales de operador incorrectas. Para probar usa: junta1 (JJVV 19) o junta2 (Unión Comunal).');
+                    setErrorMessage('Credenciales de operador incorrectas.');
                     return;
                 }
             }
@@ -1452,24 +1452,6 @@ export default function LoginRegister({ role, onBack, onLoginSuccess }) {
                 )}
             </div>
 
-            {/* Hint Box para Operadores de Juntas de Vecinos (Acceso Demo) */}
-            {role === 'junta' && (
-                <div style={{
-                    maxWidth: '450px',
-                    width: '100%',
-                    backgroundColor: '#f8fafc',
-                    border: '1px dashed #cbd5e1',
-                    padding: '16px',
-                    borderRadius: '12px',
-                    fontSize: '13px',
-                    color: '#475569',
-                    lineHeight: '1.5'
-                }}>
-                    💡 <strong>Operadores de Juntas de Vecinos (Acceso Demo):</strong><br />
-                    • <strong>JJVV N° 19 Universidad:</strong> <code>jvuniversidad19@gmail.com</code> (Clave: <code>junta1</code>)<br />
-                    • <strong>Unión Comunal Ñuñoa:</strong> <code>unioncomunalnunoa@gmail.com</code> (Clave: <code>junta2</code>)
-                </div>
-            )}
 
             {/* Modal de Política de Privacidad */}
             <ModalPoliticaPrivacidad 

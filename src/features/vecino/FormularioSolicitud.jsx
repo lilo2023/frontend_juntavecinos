@@ -655,32 +655,15 @@ export default function FormularioSolicitud(props) {
                         Arancel Establecido por la Organización: {renderArancel()}
                     </div>
 
-                    <div style={{ backgroundColor: '#fff', border: '1px solid #cbd5e0', padding: '15px', borderRadius: '4px', marginBottom: '15px', fontSize: '13px', color: '#2d3748' }}>
-                        <span style={{ fontWeight: 'bold', color: '#2b6cb0', display: 'block', marginBottom: '8px', fontSize: '14px' }}>
-                            📢 Datos de Transferencia Bancaria:
-                        </span>
-                        {infoJunta.banco ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', lineHeight: '1.4' }}>
-                                <div><strong>Destinatario:</strong> {infoJunta.nombreJunta}</div>
-                                <div><strong>RUT:</strong> {infoJunta.rutJunta}</div>
-                                <div><strong>Banco:</strong> <span style={{ color: '#2b6cb0', fontWeight: 'bold' }}>{infoJunta.banco}</span></div>
-                                <div><strong>Tipo de Cuenta:</strong> {infoJunta.tipoCuenta}</div>
-                                <div><strong>N° de Cuenta:</strong> <span style={{ fontFamily: 'monospace', fontSize: '14px', fontWeight: 'bold', backgroundColor: '#edf2f7', padding: '2px 6px', borderRadius: '3px' }}>{infoJunta.numeroCuenta}</span></div>
+                    {/* Referencia rápida de datos bancarios (detalle completo en el banner superior) */}
+                    {infoJunta.banco && (
+                        <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 12px', marginBottom: '12px', fontSize: '12px', color: '#475569', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                            <span>📢 <strong>Cuenta:</strong> {infoJunta.banco} · {infoJunta.tipoCuenta} · <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#0369a1' }}>{infoJunta.numeroCuenta}</span></span>
+                            <span style={{ color: '#94a3b8' }}>|</span>
+                            <span>📧 <span style={{ fontFamily: 'monospace', color: '#c05621', fontWeight: 'bold' }}>{infoJunta.emailContacto}</span></span>
+                        </div>
+                    )}
 
-                                <div style={{ marginTop: '5px', padding: '8px', backgroundColor: '#fffaf0', border: '1px solid #feebc8', borderRadius: '4px' }}>
-                                    <strong style={{ color: '#dd6b20' }}>📧 Correo destino para el Banco:</strong> <br />
-                                    <span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 'bold', color: '#dd6b20' }}>{infoJunta.emailContacto}</span>
-                                    <span style={{ display: 'block', fontSize: '11px', color: '#718096', marginTop: '2px' }}>
-                                        (Ingrese este correo en su banco para notificar la transferencia automáticamente)
-                                    </span>
-                                </div>
-                            </div>
-                        ) : (
-                            <div style={{ color: '#e53e3e', fontStyle: 'italic', fontWeight: '500' }}>
-                                ⚠️ Datos bancarios pendientes de configuración por la administración.
-                            </div>
-                        )}
-                    </div>
 
                     <label style={{ display: 'block', margin: '10px 0 5px 0', fontWeight: '500', fontSize: '14px' }}>
                         Cargue el Comprobante de Transferencia Electrónica:

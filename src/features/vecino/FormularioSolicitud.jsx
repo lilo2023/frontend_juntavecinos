@@ -400,6 +400,25 @@ export default function FormularioSolicitud(props) {
         return `$${valor.toLocaleString('es-CL')} CLP`;
     };
 
+    // Estado y función para feedback de copiado al portapapeles
+    const [copiadoCampo, setCopiadoCampo] = useState(null);
+    const copiarAlPortapapeles = (texto, campo) => {
+        navigator.clipboard.writeText(texto).then(() => {
+            setCopiadoCampo(campo);
+            setTimeout(() => setCopiadoCampo(null), 2000);
+        }).catch(() => {
+            // Fallback para navegadores sin soporte a clipboard API
+            const el = document.createElement('textarea');
+            el.value = texto;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            setCopiadoCampo(campo);
+            setTimeout(() => setCopiadoCampo(null), 2000);
+        });
+    };
+
     return (
         <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', fontFamily: 'Arial' }}>
 
@@ -433,21 +452,42 @@ export default function FormularioSolicitud(props) {
                         💳 <strong>3. Comprobante de Transferencia:</strong> Foto o PDF del comprobante de transferencia por el arancel de <strong>{renderArancel()}</strong> realizado a la cuenta bancaria de la Junta:
                         {infoJunta.banco ? (
                             <div style={{ backgroundColor: '#fff', border: '1px solid #bae6fd', padding: '10px 14px', borderRadius: '8px', marginTop: '8px', marginBottom: '8px', fontSize: '12px', color: '#1e293b', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                                <div style={{ fontWeight: 'bold', color: '#0369a1', marginBottom: '6px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div style={{ fontWeight: 'bold', color: '#0369a1', marginBottom: '8px', fontSize: '13px' }}>
                                     📢 Datos para realizar la Transferencia Bancaria:
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', lineHeight: '1.4' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', lineHeight: '1.6' }}>
                                     <div><strong>Destinatario:</strong> {infoJunta.nombreJunta}</div>
-                                    <div><strong>RUT:</strong> {infoJunta.rutJunta}</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <strong>RUT:</strong> {infoJunta.rutJunta}
+                                        <button type="button" onClick={() => copiarAlPortapapeles(infoJunta.rutJunta, 'rut')}
+                                            title="Copiar RUT"
+                                            style={{ border: 'none', background: copiadoCampo === 'rut' ? '#dcfce7' : '#e0f2fe', color: copiadoCampo === 'rut' ? '#16a34a' : '#0369a1', borderRadius: '4px', padding: '1px 7px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+                                            {copiadoCampo === 'rut' ? '✓ Copiado' : '📋 Copiar'}
+                                        </button>
+                                    </div>
                                     <div><strong>Banco:</strong> <span style={{ color: '#0284c7', fontWeight: 'bold' }}>{infoJunta.banco}</span></div>
                                     <div><strong>Tipo Cuenta:</strong> {infoJunta.tipoCuenta}</div>
-                                    <div style={{ gridColumn: 'span 2', marginTop: '2px' }}>
-                                        <strong>N° Cuenta:</strong> <span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 'bold', backgroundColor: '#e0f2fe', padding: '2px 6px', borderRadius: '4px', color: '#0369a1' }}>{infoJunta.numeroCuenta}</span>
+                                    <div style={{ gridColumn: 'span 2', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                        <strong>N° Cuenta:</strong>
+                                        <span style={{ fontFamily: 'monospace', fontSize: '14px', fontWeight: 'bold', backgroundColor: '#e0f2fe', padding: '2px 8px', borderRadius: '4px', color: '#0369a1', letterSpacing: '0.05em' }}>{infoJunta.numeroCuenta}</span>
+                                        <button type="button" onClick={() => copiarAlPortapapeles(infoJunta.numeroCuenta, 'cuenta')}
+                                            title="Copiar número de cuenta"
+                                            style={{ border: 'none', background: copiadoCampo === 'cuenta' ? '#dcfce7' : '#0369a1', color: copiadoCampo === 'cuenta' ? '#16a34a' : '#fff', borderRadius: '5px', padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }}>
+                                            {copiadoCampo === 'cuenta' ? '✓ ¡Copiado!' : '📋 Copiar N° Cuenta'}
+                                        </button>
                                     </div>
                                 </div>
-                                <div style={{ marginTop: '8px', padding: '6px 10px', backgroundColor: '#fffaf0', border: '1px solid #feebc8', borderRadius: '6px', fontSize: '11px' }}>
-                                    <strong style={{ color: '#dd6b20' }}>📧 Correo destino para el Banco:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#c05621' }}>{infoJunta.emailContacto}</span>
-                                    <span style={{ display: 'block', color: '#718096', fontSize: '10.5px', marginTop: '1px' }}>(Ingrese este correo en su banco para notificar la transferencia automáticamente)</span>
+                                <div style={{ marginTop: '8px', padding: '6px 10px', backgroundColor: '#fffaf0', border: '1px solid #feebc8', borderRadius: '6px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                    <div>
+                                        <strong style={{ color: '#dd6b20' }}>📧 Correo destino para el Banco:</strong>{' '}
+                                        <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#c05621' }}>{infoJunta.emailContacto}</span>
+                                        <span style={{ display: 'block', color: '#718096', fontSize: '10.5px', marginTop: '1px' }}>(Ingrese este correo en su banco para notificar la transferencia automáticamente)</span>
+                                    </div>
+                                    <button type="button" onClick={() => copiarAlPortapapeles(infoJunta.emailContacto, 'email')}
+                                        title="Copiar correo del banco"
+                                        style={{ border: 'none', background: copiadoCampo === 'email' ? '#dcfce7' : '#fef3c7', color: copiadoCampo === 'email' ? '#16a34a' : '#92400e', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s', flexShrink: 0 }}>
+                                        {copiadoCampo === 'email' ? '✓ Copiado' : '📋 Copiar'}
+                                    </button>
                                 </div>
                             </div>
                         ) : (
